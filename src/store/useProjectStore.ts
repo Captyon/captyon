@@ -1,7 +1,8 @@
 import { reactive } from 'vue';
 import type { Project, Item, Settings } from '../types';
 import type { ToastItem } from '../types';
-import { putProject, getProject, getAllMeta, deleteProject as dbDeleteProject } from '../services/db';
+import * as idb from '../services/db';
+import * as mongoDb from '../services/db.mongo';
 import { readAsDataURL, readAsText, imgDims, isImg, isTxt, base as fileBase, sleep, slug, extractSdPrompt } from '../utils/file';
 import { captionImage, testOllama } from '../services/ollama';
 
@@ -46,7 +47,11 @@ const state = reactive<State>({
     stream: false,
     usePromptMetadata: true,
     confirmPromptOnImport: true,
-    confirmDeleteOnRemove: true
+    confirmDeleteOnRemove: true,
+    // Storage settings (default to browser)
+    storage: 'browser',
+    mongoApiUrl: '',
+    mongoApiKey: ''
   },
   selection: new Set(),
   status: 'Idle',
@@ -71,9 +76,94 @@ function dismissToast(id: string) {
   if (idx !== -1) state.toasts.splice(idx, 1);
 }
 
+// Storage abstraction helpers: choose between IndexedDB (idb) and Mongo API (mongoDb)
+async function putProjectAny(project: Project): Promise<void> {
+  if (state.settings.storage === 'mongodb' && state.settings.mongoApiUrl) {
+    try {
+      await mongoDb.putProject(project, { baseUrl: state.settings.mongoApiUrl, apiKey: state.settings.mongoApiKey || null });
+      return;
+    } catch (e) {
+      addToast('Failed to save to MongoDB; using browser storage', 'warn');
+      console.error('mongo putProject failed', e);
+      // fall back to IndexedDB
+    }
+  }
+  return idb.putProject(project);
+}
+
+async function getProjectAny(id: string): Promise<Project | null> {
+  if (state.settings.storage === 'mongodb' && state.settings.mongoApiUrl) {
+    try {
+      const p = await mongoDb.getProject(id, { baseUrl: state.settings.mongoApiUrl, apiKey: state.settings.mongoApiKey || null });
+      return p;
+    } catch (e) {
+      addToast('Failed to read from MongoDB; using browser storage', 'warn');
+      console.error('mongo getProject failed', e);
+    }
+  }
+  return idb.getProject(id);
+}
+
+async function deleteProjectAny(id: string): Promise<void> {
+  if (state.settings.storage === 'mongodb' && state.settings.mongoApiUrl) {
+    try {
+      await mongoDb.deleteProject(id, { baseUrl: state.settings.mongoApiUrl, apiKey: state.settings.mongoApiKey || null });
+      return;
+    } catch (e) {
+      addToast('Failed to delete from MongoDB; using browser storage', 'warn');
+      console.error('mongo deleteProject failed', e);
+    }
+  }
+  return idb.deleteProject(id);
+}
+
+async function getAllMetaAny(): Promise<Array<{ id: string; name: string; count: number; updatedAt: number }>> {
+  if (state.settings.storage === 'mongodb' && state.settings.mongoApiUrl) {
+    try {
+      const m = await mongoDb.getAllMeta({ baseUrl: state.settings.mongoApiUrl, apiKey: state.settings.mongoApiKey || null });
+      return m;
+    } catch (e) {
+      addToast('Failed to read project list from MongoDB; using browser storage', 'warn');
+      console.error('mongo getAllMeta failed', e);
+    }
+  }
+  return idb.getAllMeta();
+}
+
+// Test connection and auto-sync helpers
+async function testMongoConnection(): Promise<boolean> {
+  if (!state.settings.mongoApiUrl) return false;
+  try {
+    const ok = await mongoDb.testConnection({ baseUrl: state.settings.mongoApiUrl, apiKey: state.settings.mongoApiKey || null });
+    return ok;
+  } catch (e) {
+    console.error('testMongoConnection error', e);
+    return false;
+  }
+}
+
+async function syncLocalToMongo(): Promise<void> {
+  try {
+    const meta = await idb.getAllMeta();
+    for (const m of meta) {
+      try {
+        const proj = await idb.getProject(m.id);
+        if (proj) {
+          await mongoDb.putProject(proj, { baseUrl: state.settings.mongoApiUrl!, apiKey: state.settings.mongoApiKey || null });
+        }
+      } catch (e) {
+        console.error('syncLocalToMongo: failed project', m.id, e);
+      }
+    }
+    addToast('Local projects synced to MongoDB', 'ok');
+  } catch (e) {
+    console.error('syncLocalToMongo failed', e);
+  }
+}
+
 /* ----------------- Meta / Projects ----------------- */
 async function refreshMetaBar() {
-  const meta = await getAllMeta();
+  const meta = await getAllMetaAny();
   state.order = meta.map(m => m.id);
 
   // Ensure the projects map contains a minimal entry for each meta item so
@@ -105,17 +195,17 @@ function createProject(name = 'Untitled Project') {
   if (!state.order.includes(p.id)) state.order.push(p.id);
   state.currentId = p.id;
   state.currentIndex = 0;
-  putProject(p).catch(err => console.error(err));
+  putProjectAny(p).catch((err: any) => console.error(err));
   return p;
 }
 
 async function loadFirstProjectIfMissing() {
-  const meta = await getAllMeta();
+  const meta = await getAllMetaAny();
   if (meta.length === 0) {
     const p = createProject('My First Project');
-    await putProject(p);
+    await putProjectAny(p);
   } else {
-    const proj = await getProject(meta[0].id);
+    const proj = await getProjectAny(meta[0].id);
     if (proj) {
       state.projects.set(proj.id, proj);
       state.currentId = proj.id;
@@ -123,6 +213,22 @@ async function loadFirstProjectIfMissing() {
     }
   }
   await refreshMetaBar();
+}
+
+async function loadProjectById(id: string): Promise<Project | null> {
+  if (!id) return null;
+  try {
+    const proj = await getProjectAny(id);
+    if (proj) {
+      state.projects.set(proj.id, proj);
+      state.currentId = proj.id;
+      state.currentIndex = proj.cursor || 0;
+    }
+    return proj;
+  } catch (e) {
+    console.error('loadProjectById failed', e);
+    return null;
+  }
 }
 
 /* ----------------- Accessors ----------------- */
@@ -256,7 +362,7 @@ async function ingestFiles(fileList: FileList | File[]) {
       state.showPromptModal = true;
       // Keep state.status Idle so UI remains responsive
       state.status = 'Idle';
-      await putProject(proj);
+      await putProjectAny(proj);
       return;
     } else {
       // Auto-apply all candidates (but still do not overwrite if originalCaption exists)
@@ -275,7 +381,7 @@ async function ingestFiles(fileList: FileList | File[]) {
   }
 
   state.status = 'Idle';
-  await putProject(proj);
+  await putProjectAny(proj);
 }
 
 /* ----------------- Project save/export/import ----------------- */
@@ -283,7 +389,7 @@ async function saveCurrentProject() {
   const proj = getCurrentProject();
   if (!proj) return;
   proj.updatedAt = Date.now();
-  await putProject(proj);
+  await putProjectAny(proj);
   addToast('Project saved', 'ok');
   await refreshMetaBar();
 }
@@ -330,9 +436,9 @@ async function deleteProject(id: string) {
   }
 
   try {
-    await dbDeleteProject(id);
+    await deleteProjectAny(id);
   } catch (err) {
-    console.error('dbDeleteProject failed', err);
+    console.error('deleteProjectAny failed', err);
     addToast('Failed to delete project from disk', 'warn');
     return false;
   }
@@ -346,13 +452,13 @@ async function deleteProject(id: string) {
   if (state.currentId === id) {
     if (state.order.length > 0) {
       const newId = state.order[0];
-      try {
-        const proj = await getProject(newId);
-        if (proj) {
-          state.projects.set(proj.id, proj);
-          state.currentId = proj.id;
-          state.currentIndex = proj.cursor || 0;
-        } else {
+        try {
+          const proj = await getProjectAny(newId);
+          if (proj) {
+            state.projects.set(proj.id, proj);
+            state.currentId = proj.id;
+            state.currentIndex = proj.cursor || 0;
+          } else {
           // Fallback: set currentId and index
           state.currentId = newId;
           state.currentIndex = 0;
@@ -366,7 +472,7 @@ async function deleteProject(id: string) {
       // No projects left — create a new default project
       const p = createProject('My First Project');
       try {
-        await putProject(p);
+        await putProjectAny(p);
       } catch (e) {
         console.error('Failed to persist new default project', e);
       }
@@ -451,7 +557,7 @@ function acceptPromptCandidate(itemId: string) {
   }
   state.promptCandidates.splice(candIdx, 1);
   if (state.promptCandidates.length === 0) state.showPromptModal = false;
-  putProject(proj).catch(console.error);
+  putProjectAny(proj).catch(console.error);
 }
 
 function rejectPromptCandidate(itemId: string) {
@@ -480,7 +586,7 @@ function acceptAllPromptCandidates() {
   state.promptCandidates.length = 0;
   state.showPromptModal = false;
   addToast(`Applied ${applied} embedded prompts`, 'ok');
-  putProject(proj).catch(console.error);
+  putProjectAny(proj).catch(console.error);
 }
 
 function rejectAllPromptCandidates() {
@@ -593,7 +699,7 @@ function removeCurrentItem() {
     state.currentIndex = Math.min(idx, proj.items.length - 1);
   }
   proj.cursor = state.currentIndex;
-  putProject(proj).catch(console.error);
+  putProjectAny(proj).catch(console.error);
   addToast(`Removed image: ${removed.filename}`, 'ok');
 
   // If there are any pending promptCandidates for this item, drop them
@@ -605,10 +711,22 @@ function removeCurrentItem() {
 }
 
 /* ----------------- Settings ----------------- */
-function saveSettings(newSettings: Partial<Settings>) {
+async function saveSettings(newSettings: Partial<Settings>) {
+  const prevStorage = state.settings.storage;
   Object.assign(state.settings, newSettings);
   localStorage.setItem('captionSettings', JSON.stringify(state.settings));
   addToast('Settings saved', 'ok');
+
+  // If storage switched to mongodb and an api url is configured, test and auto-sync
+  if (state.settings.storage === 'mongodb' && state.settings.mongoApiUrl && prevStorage !== 'mongodb') {
+    const ok = await testMongoConnection();
+    if (ok) {
+      addToast('Connected to MongoDB — syncing local projects', 'ok');
+      await syncLocalToMongo();
+    } else {
+      addToast('MongoDB unreachable. Using browser storage. You can retry in Settings.', 'warn');
+    }
+  }
 }
 
 function loadSettingsFromLocal() {
@@ -623,6 +741,17 @@ async function initStore() {
   loadSettingsFromLocal();
   await loadFirstProjectIfMissing();
   await refreshMetaBar();
+
+  // If configured for MongoDB at startup, test connection and attempt auto-sync if available
+  if (state.settings.storage === 'mongodb' && state.settings.mongoApiUrl) {
+    const ok = await testMongoConnection();
+    if (ok) {
+      addToast('Connected to MongoDB — syncing local projects', 'ok');
+      await syncLocalToMongo();
+    } else {
+      addToast('MongoDB unreachable. Using browser storage. Open Settings to retry.', 'warn');
+    }
+  }
 }
 
 /* ----------------- Expose API ----------------- */
@@ -638,6 +767,7 @@ export function useProjectStore() {
       state.currentId = project.id;
       state.currentIndex = project.cursor || 0;
     },
+    loadProjectById,
     getCurrentProject,
     currentItem,
     filteredItems,
@@ -664,6 +794,31 @@ export function useProjectStore() {
         const ok = await testOllama(state.settings.ollamaUrl);
         return ok;
       } catch {
+        return false;
+      }
+    },
+    testMongo: async () => {
+      try {
+        const ok = await testMongoConnection();
+        if (ok) {
+          addToast('MongoDB connection OK', 'ok');
+          await syncLocalToMongo();
+        } else {
+          addToast('MongoDB connection failed', 'warn');
+        }
+        return ok;
+      } catch (e) {
+        console.error('testMongo', e);
+        addToast('MongoDB connection failed', 'warn');
+        return false;
+      }
+    },
+    syncToMongo: async () => {
+      try {
+        await syncLocalToMongo();
+        return true;
+      } catch (e) {
+        console.error('syncToMongo', e);
         return false;
       }
     },

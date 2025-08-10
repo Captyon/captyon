@@ -28,6 +28,12 @@ export type Settings = {
   usePromptMetadata: boolean;
   confirmPromptOnImport: boolean;
   confirmDeleteOnRemove: boolean;
+  // storage selection: default remains browser (IndexedDB)
+  storage?: 'browser' | 'mongodb';
+  // If storage === 'mongodb' the client will talk to this API base URL
+  mongoApiUrl?: string;
+  // Optional API key / token to send in Authorization header (Bearer) or x-api-key
+  mongoApiKey?: string;
 };
 
 export type ToastKind = '' | 'ok' | 'warn' | 'danger';
