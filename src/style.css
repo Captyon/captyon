@@ -1,0 +1,414 @@
+:root {
+  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+
+  color-scheme: light dark;
+  color: rgba(255, 255, 255, 0.87);
+  background-color: #242424;
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+a {
+  font-weight: 500;
+  color: #646cff;
+  text-decoration: inherit;
+}
+a:hover {
+  color: #535bf2;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+}
+
+h1 {
+  font-size: 3.2em;
+  line-height: 1.1;
+}
+
+button {
+  border-radius: 8px;
+  border: 1px solid transparent;
+  padding: 0.6em 1.2em;
+  font-size: 1em;
+  font-weight: 500;
+  font-family: inherit;
+  background-color: #1a1a1a;
+  cursor: pointer;
+  transition: border-color 0.25s;
+}
+button:hover {
+  border-color: #646cff;
+}
+button:focus,
+button:focus-visible {
+  outline: 4px auto -webkit-focus-ring-color;
+}
+
+.card {
+  padding: 2em;
+}
+
+#app {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+html, body, #app, .app {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+.app {
+  height: 100vh;
+  width: 100%;
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    color: #213547;
+    background-color: #ffffff;
+  }
+  a:hover {
+    color: #747bff;
+  }
+  button {
+    background-color: #f9f9f9;
+  }
+}
+
+:root {
+  --bg: #0b0f14;
+  --panel: #11161d;
+  --muted: #161c25;
+  --border: #243042;
+  --text: #e7edf5;
+  --text-dim: #a7b3c3;
+  --brand: #7aa2f7;
+  --accent: #89dceb;
+  --a: var(--brand);
+  --b: var(--accent);
+  --c: #b28eff;
+  --warn: #f6c177;
+  --danger: #ff757f;
+  --ok: #78e08f;
+  --shadow: 0 8px 30px rgba(0,0,0,0.35);
+  --radius-lg: 16px;
+  --radius-md: 10px;
+  --radius-sm: 8px;
+}
+* { box-sizing: border-box } 
+html, body { height: 100% }
+body {
+  margin: 0;
+  background: radial-gradient(1200px 1200px at 10% -10%, #0e1520 0%, var(--bg) 40%) fixed;
+  color: var(--text);
+  font: 14px/1.45 system-ui, -apple-system, Segoe UI, Roboto, Inter, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  letter-spacing: .2px;
+}
+.app {
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  height: 100vh;
+}
+header {
+  position: sticky; top: 0; z-index: 10;
+  padding: 10px 12px;
+  display: grid; grid-template-columns: 260px 1fr auto; gap: 10px; align-items: center;
+  background: rgba(11,15,20,.75);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--border);
+}
+.brand { display: flex; align-items: center; gap: 10px }
+.logo { width: 28px; height: 28px; border-radius: 8px; background: linear-gradient(135deg, var(--brand), var(--accent)); box-shadow: var(--shadow) }
+
+/* Scope everything under .cs-logo-wrap so it stays in its lane */
+.cs-logo-wrap {
+  --cs-a: #8a5bff;    /* violet */
+  --cs-b: #2dd9ff;    /* cyan */
+  --cs-c: #ff5fd1;    /* magenta */
+  color: #e7ebf3;
+}
+
+/* Size the logo responsively */
+.cs-logo-wrap .cs-logo {
+  display: block;
+  width: clamp(160px, 40vw, 420px);
+  height: auto;
+}
+
+/* Optional shimmer used by the tiny sparkle in the SVG */
+.cs-logo-wrap .shimmer { position: relative; overflow: hidden; }
+@keyframes cs-shimmer { to { transform: translateX(120%); } }
+.cs-logo-wrap .shimmer::after {
+  content: "";
+  position: absolute; inset: -40% -100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,.14), transparent);
+  transform: translateX(-120%);
+  animation: cs-shimmer 3.5s linear infinite;
+}
+
+/* Respect reduced motion because we are not monsters */
+@media (prefers-reduced-motion: reduce) {
+  .cs-logo-wrap .shimmer::after { animation: none; }
+}
+
+/* Compact header variant: keep the large responsive logo for other pages,
+   but ensure the header's brand area shows a compact icon-sized logo */
+.brand .cs-logo-wrap {
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  overflow: hidden;
+  background: linear-gradient(135deg, var(--brand), var(--accent));
+  box-shadow: var(--shadow);
+}
+
+.brand .cs-logo-wrap .cs-logo {
+  width: 20px;    /* slightly inset so the graphic reads at small sizes */
+  height: 20px;
+  display: block;
+}
+.brand h1 { font-size: 16px; margin: 0; font-weight: 700; letter-spacing: .4px }
+.toolbar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap }
+.toolbar .spacer { flex: 1 }
+.btn, select, input[type="text"], input[type="search"], .seg {
+  background: var(--muted);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+  height: 36px;
+}
+.btn { cursor: pointer; display: inline-flex; gap: 8px; align-items: center }
+.btn:hover { border-color: var(--brand) }
+.btn.primary { background: linear-gradient(180deg, #1a2432, #101722); border-color: #364860; }
+.btn.primary:hover { outline: 1px solid var(--brand) }
+.btn.ghost { background: transparent }
+.btn.small { height: 30px; padding: 6px 9px; font-size: 12px }
+.icon { font-style: normal }
+
+main {
+  display: grid;
+  grid-template-columns: 320px 1fr 390px;
+  gap: 12px;
+  padding: 12px;
+  min-height: 0;
+}
+aside, .viewer, .editor { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: var(--shadow) }
+aside { display: grid; grid-template-rows: auto auto 1fr; min-width: 0 }
+.panel-head { padding: 12px 14px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 8px; position: relative; overflow: visible; }
+.panel-head h3 { margin: 0; font-size: 13px; text-transform: uppercase; letter-spacing: .8px; color: var(--text-dim) }
+
+.project-bar { padding: 14px 16px; display: flex; gap: 14px; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; min-height: 64px; }
+
+.panel-head .badge {
+  position: static;
+  margin-left: auto;
+  transform: none;
+  z-index: 2;
+}
+
+.project-bar .seg {
+  display: inline-flex;
+  gap: 0;
+  align-items: center;
+  padding: 0;
+  border-radius: 10px;
+  flex: 0 0 auto;
+  min-width: 0;
+  overflow: hidden;
+  background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.02));
+  border: 1px solid var(--border);
+}
+
+/* Connected segmented buttons (joined corners) */
+.project-bar .seg .btn {
+  border-radius: 0;
+  margin: 0;
+  border: 0;
+  padding: 8px 12px;
+  height: 32px;
+  background: transparent;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.project-bar .seg .btn + .btn {
+  border-left: 1px solid var(--border);
+}
+
+.project-bar .seg .btn:first-child {
+  border-top-left-radius: 8px;
+  border-bottom-left-radius: 8px;
+}
+
+.project-bar .seg .btn:last-child {
+  border-top-right-radius: 8px;
+  border-bottom-right-radius: 8px;
+}
+
+.project-bar .controls-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  width: 100%;
+}
+
+.project-bar label {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  white-space: nowrap;
+  font-size: 13px;
+  color: var(--text-dim);
+}
+
+.project-bar input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  display: inline-block;
+  vertical-align: middle;
+}
+
+.project-bar .btn.small {
+  height: 32px;
+  padding: 6px 10px;
+}
+
+.project-bar .right { margin-left: auto; }
+
+@media (max-width: 520px) {
+  .project-bar { padding: 10px; gap: 8px; min-height: auto }
+  .project-bar .seg,
+  .project-bar .controls-row { width: 100%; }
+  .project-bar { align-items: center; }
+  .project-bar .controls-row { flex-wrap: wrap; gap: 8px; justify-content: flex-start }
+  .project-bar label { white-space: normal }
+}
+
+.thumbs { overflow: auto; padding: 8px; display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: 8px; align-content: start; }
+.thumb { position: relative; border: 1px solid var(--border); border-radius: 10px; background: #0c1219; cursor: pointer; overflow: hidden; align-self: start; }
+.thumb img { width: 100%; height: 78px; object-fit: cover; display: block }
+.thumb .cap { position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(180deg, rgba(0,0,0,0), rgba(0,0,0,.55)); padding: 6px; font-size: 11px; color: #d5dfef; white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
+.thumb .mark { position: absolute; top: 6px; left: 6px; background: rgba(122,162,247,.9); color: #02060c; font-weight: 700; font-size: 10px; padding: 2px 6px; border-radius: 999px }
+.thumb.active { outline: 2px solid var(--brand) }
+
+.viewer { display: grid; grid-template-rows: auto 1fr auto; min-width: 0 }
+.viewer-tools, .editor-tools { padding: 8px 10px; border-bottom: 1px solid var(--border); display: flex; gap: 8px; align-items: center; flex-wrap: wrap }
+.viewport { position: relative; overflow: auto; background: repeating-conic-gradient(#0a0f16 0% 25%, #0b121a 0% 50%) 50% / 24px 24px; border-bottom: 1px solid var(--border) }
+.canvas-wrap { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center }
+.canvas-wrap img { max-width: 100%; max-height: 100%; transform-origin: center; image-rendering: auto }
+
+.viewer-footer { padding: 8px 10px; display: flex; gap: 10px; align-items: center; justify-content: space-between }
+.meter { height: 6px; background: #0b1119; border: 1px solid var(--border); border-radius: 999px; overflow: hidden; width: 200px }
+.meter > i { display: block; height: 100%; background: linear-gradient(90deg, var(--brand), var(--accent)); width: 0% }
+
+.editor { display: grid; grid-template-rows: auto 1fr auto }
+.editor textarea {
+  width: 100%; height: 100%; background: #0a0f16; color: var(--text); border: 0; outline: none; padding: 12px; font: 14px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  resize: none; border-bottom-left-radius: var(--radius-lg); border-bottom-right-radius: var(--radius-lg);
+}
+.editor .stats { padding: 8px 10px; border-top: 1px solid var(--border); display: flex; gap: 12px; align-items: center; justify-content: space-between }
+.tags { display: flex; gap: 6px; flex-wrap: wrap }
+.tag { background: #0f1620; border: 1px solid var(--border); color: var(--text-dim); padding: 4px 8px; border-radius: 999px; font-size: 12px }
+
+footer { padding: 6px 12px; border-top: 1px solid var(--border); color: var(--text-dim); display: flex; gap: 10px; align-items: center; justify-content: space-between }
+kbd { background: #0a0f16; border: 1px solid var(--border); border-bottom-color: #1b2a3c; border-radius: 6px; padding: 2px 6px; font-size: 12px; color: #d0d8e4 }
+
+.hidden { display: none !important }
+.right { margin-left: auto }
+
+.drop-overlay { position: fixed; inset: 0; background: rgba(10,15,22,.75); backdrop-filter: blur(3px); display: none; align-items: center; justify-content: center; z-index: 999; border: 3px dashed var(--brand); color: var(--brand); font-weight: 700; font-size: 18px }
+
+.toast { position: fixed; right: 14px; bottom: 14px; background: #0a0f16; border: 1px solid var(--border); padding: 10px 12px; border-radius: 10px; box-shadow: var(--shadow); display: grid; gap: 6px; width: min(360px, 90vw) }
+.toast.warn { border-color: var(--warn) }
+.toast.ok { border-color: var(--ok) }
+.toast .row { display: flex; gap: 8px; align-items: center; justify-content: space-between }
+
+dialog { border: 1px solid var(--border); background: var(--panel); color: var(--text); border-radius: 12px; padding: 0; width: min(720px, 92vw) }
+dialog::backdrop { background: rgba(0,0,0,.55) }
+.modal-head { padding: 12px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between }
+.modal-body { padding: 12px; display: grid; gap: 10px }
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px }
+label { font-size: 12px; color: var(--text-dim) }
+.field { display: grid; gap: 6px }
+textarea.input { min-height: 80px }
+
+.badge { background: #0f1620; border: 1px solid var(--border); color: var(--text-dim); padding: 2px 6px; border-radius: 999px; font-size: 11px }
+
+@media (max-width: 1200px) {
+  main { grid-template-columns: 1fr; grid-template-rows: auto auto auto }
+  aside { order: 1 }
+  .viewer { order: 2; min-height: 40vh }
+  .editor { order: 3; min-height: 30vh }
+}
+
+
+/* ==== Overflow fixes for the Images panel controls ==== */
+/* Allow the controls row to wrap within the aside even when the viewport is wide */
+.project-bar .controls-row {
+  flex-wrap: wrap;
+  gap: 8px;
+  min-width: 0;
+}
+
+/* Let long labels break instead of shoving the row off the edge */
+.project-bar label {
+  white-space: normal;
+}
+
+/* Keep the Bulk Tools button inside the panel and push it to the end of the current row */
+#bulkToolsBtn {
+  margin-left: auto;
+  position: static;
+  transform: none;
+}
+
+/* Prevent the segmented button group from stretching beyond the panel */
+.project-bar .seg {
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 100%;
+}
+
+/* Make small buttons shrink gracefully */
+.btn.small {
+  flex: 0 0 auto;
+}
+
+/* Ensure the panel header can wrap content instead of overflowing */
+.panel-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.panel-head > * {
+  min-width: 0;
+}
+.panel-head .right,
+.panel-head .badge {
+  margin-left: auto;
+  position: static;
+  transform: none;
+}
+/* ==== End overflow fixes ==== */

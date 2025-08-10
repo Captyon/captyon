@@ -1,0 +1,584 @@
+import { reactive } from 'vue';
+import type { Project, Item, Settings } from '../types';
+import type { ToastItem } from '../types';
+import { putProject, getProject, getAllMeta } from '../services/db';
+import { readAsDataURL, readAsText, imgDims, isImg, isTxt, base as fileBase, sleep, slug, extractSdPrompt } from '../utils/file';
+import { captionImage, testOllama } from '../services/ollama';
+
+function newId(prefix = 'p_') {
+  return prefix + Math.random().toString(36).slice(2, 9);
+}
+
+type Progress = { cur: number; total: number };
+
+type State = {
+  projects: Map<string, Project>;
+  order: string[];
+  currentId: string | null;
+  currentIndex: number;
+  zoom: number;
+  rotation: number;
+  filter: { text: string; onlyMissing: boolean; onlySelected: boolean };
+  settings: Settings;
+  selection: Set<string>;
+  status: string;
+  progress: Progress;
+  toasts: ToastItem[];
+  // Prompt candidates extracted from images (but not yet applied)
+  promptCandidates: Array<{ itemId: string; filename: string; img: string; prompt: string }>;
+  // Show confirmation modal when promptCandidates is non-empty and user opted-in
+  showPromptModal: boolean;
+};
+
+const state = reactive<State>({
+  projects: new Map(),
+  order: [],
+  currentId: null,
+  currentIndex: -1,
+  zoom: 100,
+  rotation: 0,
+  filter: { text: '', onlyMissing: false, onlySelected: false },
+  settings: {
+    ollamaUrl: 'http://localhost:11434',
+    ollamaModel: 'llama3.2-vision',
+    promptTpl:
+      'Describe this image as a short, high quality caption. Focus on the main subject, action, style, lighting and mood. Keep it concise.',
+    stream: false,
+    usePromptMetadata: true,
+    confirmPromptOnImport: true
+  },
+  selection: new Set(),
+  status: 'Idle',
+  progress: { cur: 0, total: 0 },
+  toasts: [],
+  promptCandidates: [],
+  showPromptModal: false
+});
+
+/* ----------------- Toasts ----------------- */
+function addToast(message: string, kind: ToastItem['kind'] = '') {
+  const t: ToastItem = { id: newId('t_'), message, kind };
+  state.toasts.push(t);
+  setTimeout(() => {
+    const idx = state.toasts.findIndex(x => x.id === t.id);
+    if (idx !== -1) state.toasts.splice(idx, 1);
+  }, 7000);
+}
+
+function dismissToast(id: string) {
+  const idx = state.toasts.findIndex(x => x.id === id);
+  if (idx !== -1) state.toasts.splice(idx, 1);
+}
+
+/* ----------------- Meta / Projects ----------------- */
+async function refreshMetaBar() {
+  const meta = await getAllMeta();
+  state.order = meta.map(m => m.id);
+
+  // Ensure the projects map contains a minimal entry for each meta item so
+  // the UI can display project names immediately (instead of falling back to IDs)
+  for (const m of meta) {
+    const existing = state.projects.get(m.id);
+    if (existing) {
+      // keep name in sync in case it changed
+      if (existing.name !== m.name) existing.name = m.name;
+    } else {
+      // insert a lightweight placeholder Project so templates can read .name
+      state.projects.set(m.id, {
+        id: m.id,
+        name: m.name,
+        createdAt: m.updatedAt || Date.now(),
+        updatedAt: m.updatedAt || Date.now(),
+        items: [],
+        cursor: 0
+      });
+    }
+  }
+
+  return meta;
+}
+
+function createProject(name = 'Untitled Project') {
+  const p: Project = { id: newId('p_'), name, createdAt: Date.now(), updatedAt: Date.now(), items: [], cursor: 0 };
+  state.projects.set(p.id, p);
+  if (!state.order.includes(p.id)) state.order.push(p.id);
+  state.currentId = p.id;
+  state.currentIndex = 0;
+  putProject(p).catch(err => console.error(err));
+  return p;
+}
+
+async function loadFirstProjectIfMissing() {
+  const meta = await getAllMeta();
+  if (meta.length === 0) {
+    const p = createProject('My First Project');
+    await putProject(p);
+  } else {
+    const proj = await getProject(meta[0].id);
+    if (proj) {
+      state.projects.set(proj.id, proj);
+      state.currentId = proj.id;
+      state.currentIndex = proj.cursor || 0;
+    }
+  }
+  await refreshMetaBar();
+}
+
+/* ----------------- Accessors ----------------- */
+function getCurrentProject(): Project | null {
+  if (!state.currentId) return null;
+  return state.projects.get(state.currentId) || null;
+}
+
+function currentItem(): Item | null {
+  const proj = getCurrentProject();
+  if (!proj) return null;
+  return proj.items[state.currentIndex] || null;
+}
+
+function filteredItems(): Item[] {
+  const proj = getCurrentProject();
+  if (!proj) return [];
+  const q = state.filter.text.trim().toLowerCase();
+  return proj.items.filter(it => {
+    if (state.filter.onlyMissing && it.caption) return false;
+    if (state.filter.onlySelected && !it.selected) return false;
+    if (!q) return true;
+    return it.filename.toLowerCase().includes(q) || (it.caption || '').toLowerCase().includes(q);
+  });
+}
+
+function getAbsoluteIndex(filteredIdx: number) {
+  const proj = getCurrentProject();
+  const list = filteredItems();
+  const target = list[filteredIdx];
+  if (!proj || !target) return -1;
+  return proj.items.indexOf(target);
+}
+
+/* ----------------- File ingestion ----------------- */
+async function ingestFiles(fileList: FileList | File[]) {
+  const files = Array.from(fileList as any) as File[];
+  const images = files.filter(isImg);
+  const texts = files.filter(isTxt);
+  if (images.length === 0 && texts.length === 0) {
+    addToast('No supported files found', '');
+    return;
+  }
+
+  const txtByBase = new Map<string, File>();
+  for (const t of texts) {
+    txtByBase.set(fileBase(t), t);
+  }
+
+  const proj = getCurrentProject();
+  if (!proj) {
+    addToast('No project selected', 'warn');
+    return;
+  }
+
+  state.status = 'Reading files';
+  let added = 0;
+
+  // Build sets to avoid duplicates: files already in project and duplicates within this import
+  const existingBases = new Set(proj.items.map(it => it.base || it.filename));
+  const seenBases = new Set<string>();
+  const uniqueImages: File[] = [];
+  for (const imgFile of images) {
+    const b = fileBase(imgFile);
+    if (existingBases.has(b) || seenBases.has(b)) continue;
+    seenBases.add(b);
+    uniqueImages.push(imgFile);
+  }
+
+  state.progress.total = uniqueImages.length;
+  state.progress.cur = 0;
+
+  for (const imgFile of uniqueImages) {
+    const b = fileBase(imgFile);
+    const txtFile = txtByBase.get(b) || null;
+    try {
+      const [imgData, txt] = await Promise.all([readAsDataURL(imgFile), txtFile ? readAsText(txtFile) : Promise.resolve('')]);
+      const item: Item = {
+        id: newId('i_'),
+        filename: imgFile.name,
+        base: b,
+        caption: (txt || '').trim(),
+        originalCaption: (txt || '').trim(),
+        img: imgData,
+        tags: [],
+        selected: false,
+        width: 0,
+        height: 0
+      };
+      try {
+        const d = await imgDims(imgData);
+        item.width = d.w;
+        item.height = d.h;
+      } catch {}
+
+      // If user enabled prompt metadata scanning and there's no .txt original caption,
+      // attempt to extract embedded Stable Diffusion prompt metadata.
+      if (state.settings.usePromptMetadata && !(item.originalCaption && item.originalCaption.trim())) {
+        try {
+          const extracted = await extractSdPrompt(imgFile);
+          if (extracted) {
+            // push candidate (do not apply yet)
+            state.promptCandidates.push({
+              itemId: item.id,
+              filename: item.filename,
+              img: imgData,
+              prompt: extracted
+            });
+          }
+        } catch (e) {
+          // ignore extraction errors
+        }
+      }
+
+      proj.items.push(item);
+      added++;
+      state.progress.cur = added;
+    } catch (err) {
+      console.error('Failed to read file', imgFile.name, err);
+    }
+  }
+
+  proj.updatedAt = Date.now();
+  const skipped = images.length - uniqueImages.length;
+  addToast(`Loaded ${added} images${texts.length ? ` with ${texts.length} text file(s)` : ''}${skipped ? ` • ${skipped} duplicate(s) skipped` : ''}.`, 'ok');
+
+  // If there are extracted prompt candidates, either show the modal for confirmation
+  // or auto-apply depending on settings
+  if (state.promptCandidates.length > 0) {
+    if (state.settings.confirmPromptOnImport) {
+      state.showPromptModal = true;
+      // Keep state.status Idle so UI remains responsive
+      state.status = 'Idle';
+      await putProject(proj);
+      return;
+    } else {
+      // Auto-apply all candidates (but still do not overwrite if originalCaption exists)
+      let applied = 0;
+      for (const c of state.promptCandidates) {
+        const it = proj.items.find(x => x.id === c.itemId);
+        if (it && !(it.originalCaption && it.originalCaption.trim())) {
+          it.caption = c.prompt;
+          it.originalCaption = c.prompt;
+          applied++;
+        }
+      }
+      state.promptCandidates.length = 0;
+      addToast(`Applied ${applied} embedded prompts as captions`, 'ok');
+    }
+  }
+
+  state.status = 'Idle';
+  await putProject(proj);
+}
+
+/* ----------------- Project save/export/import ----------------- */
+async function saveCurrentProject() {
+  const proj = getCurrentProject();
+  if (!proj) return;
+  proj.updatedAt = Date.now();
+  await putProject(proj);
+  addToast('Project saved', 'ok');
+  await refreshMetaBar();
+}
+
+function exportProject() {
+  const proj = getCurrentProject();
+  if (!proj) {
+    addToast('No project', 'warn');
+    return;
+  }
+  const data = { schema: 'caption-studio-v1', project: proj };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = slug(proj.name) + '.json';
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function importProjectFromJSON(obj: any) {
+  if (obj && obj.schema === 'caption-studio-v1' && obj.project) {
+    const p: Project = obj.project;
+    p.updatedAt = Date.now();
+    state.projects.set(p.id, p);
+    if (!state.order.includes(p.id)) state.order.push(p.id);
+    state.currentId = p.id;
+    state.currentIndex = p.cursor || 0;
+    addToast('Project imported', 'ok');
+    refreshMetaBar().catch(console.error);
+  } else {
+    addToast('Invalid JSON schema', 'warn');
+  }
+}
+
+/* ----------------- Editing & navigation ----------------- */
+function applyEdits(caption: string, tagsRaw: string) {
+  const it = currentItem();
+  if (!it) return;
+  it.caption = caption.trim();
+  it.tags = tagsRaw.split(',').map(s => s.trim()).filter(Boolean);
+  addToast('Caption saved', 'ok');
+}
+
+function copyFromFile() {
+  const it = currentItem();
+  if (!it) return;
+  if (it.originalCaption) {
+    // caller will set caption text box
+    addToast('Copied original caption', 'ok');
+    return it.originalCaption;
+  } else {
+    addToast('No original .txt caption found', 'warn');
+    return '';
+  }
+}
+
+function clearCaption() {
+  const it = currentItem();
+  if (!it) return;
+  it.caption = '';
+}
+
+/* ----------------- Bulk tools ----------------- */
+function bulkApply(prefix = '', suffix = '', find = '', replaceStr = '') {
+  const proj = getCurrentProject();
+  if (!proj) return;
+  const targets = proj.items.filter(it => (state.filter.onlySelected ? it.selected : true));
+  const rx = find ? new RegExp(find.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g') : null;
+  for (const it of targets) {
+    let t = it.caption || '';
+    if (rx) t = t.replace(rx, replaceStr);
+    if (prefix) t = prefix + t;
+    if (suffix) t = t + suffix;
+    it.caption = t.trim();
+  }
+  addToast('Bulk edit applied', 'ok');
+}
+
+/* ----------------- Prompt candidates (embedded metadata) ----------------- */
+function acceptPromptCandidate(itemId: string) {
+  const proj = getCurrentProject();
+  if (!proj) return;
+  const idx = proj.items.findIndex(i => i.id === itemId);
+  if (idx === -1) return;
+  const candIdx = state.promptCandidates.findIndex(c => c.itemId === itemId);
+  if (candIdx === -1) return;
+  const c = state.promptCandidates[candIdx];
+  const it = proj.items[idx];
+  if (!(it.originalCaption && it.originalCaption.trim())) {
+    // replace the item object so Vue reactivity picks up the change
+    const newIt = { ...it, caption: c.prompt, originalCaption: c.prompt };
+    proj.items[idx] = newIt;
+    addToast(`Applied prompt for ${it.filename}`, 'ok');
+  } else {
+    addToast(`Skipped ${it.filename} (already has original caption)`, 'warn');
+  }
+  state.promptCandidates.splice(candIdx, 1);
+  if (state.promptCandidates.length === 0) state.showPromptModal = false;
+  putProject(proj).catch(console.error);
+}
+
+function rejectPromptCandidate(itemId: string) {
+  const idx = state.promptCandidates.findIndex(c => c.itemId === itemId);
+  if (idx === -1) return;
+  state.promptCandidates.splice(idx, 1);
+  if (state.promptCandidates.length === 0) state.showPromptModal = false;
+}
+
+function acceptAllPromptCandidates() {
+  const proj = getCurrentProject();
+  if (!proj) return;
+  let applied = 0;
+  for (const c of state.promptCandidates) {
+    const idx = proj.items.findIndex(x => x.id === c.itemId);
+    if (idx !== -1) {
+      const it = proj.items[idx];
+      if (!(it.originalCaption && it.originalCaption.trim())) {
+        // replace the item so Vue sees the change
+        const newIt = { ...it, caption: c.prompt, originalCaption: c.prompt };
+        proj.items[idx] = newIt;
+        applied++;
+      }
+    }
+  }
+  state.promptCandidates.length = 0;
+  state.showPromptModal = false;
+  addToast(`Applied ${applied} embedded prompts`, 'ok');
+  putProject(proj).catch(console.error);
+}
+
+function rejectAllPromptCandidates() {
+  state.promptCandidates.length = 0;
+  state.showPromptModal = false;
+}
+
+/* ----------------- End prompt candidates ----------------- */
+
+/* ----------------- Auto caption (Ollama) ----------------- */
+async function autoCaptionCurrent() {
+  const it = currentItem();
+  if (!it) {
+    addToast('No image selected', 'warn');
+    return;
+  }
+  try {
+    state.status = 'Contacting Ollama';
+    const img64 = it.img.split(',')[1] || '';
+    const text = await captionImage(state.settings, img64, chunk => {
+      // progressive streaming handled by caller (component) via store subscription to item changes
+      it.caption = (it.caption || '') + chunk;
+    });
+    if (text) {
+      it.caption = text;
+      addToast('AI caption generated', 'ok');
+    } else {
+      addToast('Empty response from model', 'warn');
+    }
+  } catch (err) {
+    console.error(err);
+    addToast('AI request failed. Check settings. Browser to localhost can be blocked.', 'warn');
+  } finally {
+    state.status = 'Idle';
+  }
+}
+
+async function autoCaptionBulk() {
+  const proj = getCurrentProject();
+  if (!proj) return;
+  const targets = proj.items.filter(it => (state.filter.onlySelected ? it.selected : !it.caption));
+  if (targets.length === 0) {
+    addToast('Nothing to caption', 'warn');
+    return;
+  }
+  state.status = 'Auto captioning...';
+  for (let i = 0; i < targets.length; i++) {
+    const it = targets[i];
+    state.currentIndex = proj.items.indexOf(it);
+    try {
+      const img64 = it.img.split(',')[1] || '';
+      const text = await captionImage(state.settings, img64, chunk => {
+        it.caption = (it.caption || '') + chunk;
+      });
+      if (text) {
+        it.caption = text;
+      }
+    } catch (e) {
+      addToast('Failed on ' + it.filename, 'warn');
+      break;
+    }
+    state.progress.cur = i + 1;
+    await sleep(150);
+  }
+  state.status = 'Idle';
+  addToast('Bulk auto caption complete', 'ok');
+}
+
+/* ----------------- Navigation ----------------- */
+function prev() {
+  const proj = getCurrentProject();
+  if (!proj) return;
+  state.currentIndex = Math.max(0, state.currentIndex - 1);
+  proj.cursor = state.currentIndex;
+}
+
+function next() {
+  const proj = getCurrentProject();
+  if (!proj) return;
+  state.currentIndex = Math.min(proj.items.length - 1, state.currentIndex + 1);
+  proj.cursor = state.currentIndex;
+}
+
+/* ----------------- Selection / filters ----------------- */
+function toggleSelect(itemId: string) {
+  const proj = getCurrentProject();
+  if (!proj) return;
+  const it = proj.items.find(i => i.id === itemId);
+  if (!it) return;
+  it.selected = !it.selected;
+}
+
+function clearList() {
+  const proj = getCurrentProject();
+  if (!proj) return;
+  proj.items.length = 0;
+  state.currentIndex = 0;
+}
+
+/* ----------------- Settings ----------------- */
+function saveSettings(newSettings: Partial<Settings>) {
+  Object.assign(state.settings, newSettings);
+  localStorage.setItem('captionSettings', JSON.stringify(state.settings));
+  addToast('Settings saved', 'ok');
+}
+
+function loadSettingsFromLocal() {
+  try {
+    const s = JSON.parse(localStorage.getItem('captionSettings') || '{}');
+    Object.assign(state.settings, s);
+  } catch {}
+}
+
+/* ----------------- Init helper ----------------- */
+async function initStore() {
+  loadSettingsFromLocal();
+  await loadFirstProjectIfMissing();
+  await refreshMetaBar();
+}
+
+/* ----------------- Expose API ----------------- */
+export function useProjectStore() {
+  return {
+    state,
+    initStore,
+    refreshMetaBar,
+    createProject,
+    setCurrentProject(project: Project) {
+      state.projects.set(project.id, project);
+      if (!state.order.includes(project.id)) state.order.push(project.id);
+      state.currentId = project.id;
+      state.currentIndex = project.cursor || 0;
+    },
+    getCurrentProject,
+    currentItem,
+    filteredItems,
+    getAbsoluteIndex,
+    ingestFiles,
+    saveCurrentProject,
+    exportProject,
+    importProjectFromJSON,
+    applyEdits,
+    copyFromFile,
+    clearCaption,
+    bulkApply,
+    autoCaptionCurrent,
+    autoCaptionBulk,
+    prev,
+    next,
+    toggleSelect,
+    clearList,
+    saveSettings,
+    testOllama: async () => {
+      try {
+        const ok = await testOllama(state.settings.ollamaUrl);
+        return ok;
+      } catch {
+        return false;
+      }
+    },
+    toasts: state.toasts,
+    addToast,
+    dismissToast,
+    stateRef: state,
+    // Prompt candidate actions
+    acceptPromptCandidate,
+    rejectPromptCandidate,
+    acceptAllPromptCandidates,
+    rejectAllPromptCandidates
+  };
+}

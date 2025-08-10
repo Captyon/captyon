@@ -1,0 +1,23 @@
+{
+  "name": "caption-studio",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vue-tsc -b && vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "pako": "^2.1.0",
+    "vue": "^3.5.18"
+  },
+  "devDependencies": {
+    "@types/pako": "^2.0.3",
+    "@vitejs/plugin-vue": "^6.0.1",
+    "@vue/tsconfig": "^0.7.0",
+    "typescript": "~5.8.3",
+    "vite": "^7.1.0",
+    "vue-tsc": "^3.0.5"
+  }
+}
