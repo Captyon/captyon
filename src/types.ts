@@ -28,6 +28,8 @@ export type Settings = {
   usePromptMetadata: boolean;
   confirmPromptOnImport: boolean;
   confirmDeleteOnRemove: boolean;
+  // Show the welcome screen on first run (default true). Can be persisted to localStorage.
+  showWelcomeOnStart?: boolean;
   // storage selection: default remains browser (IndexedDB)
   storage?: 'browser' | 'mongodb';
   // If storage === 'mongodb' the client will talk to this API base URL

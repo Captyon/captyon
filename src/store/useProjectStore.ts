@@ -27,6 +27,8 @@ type State = {
   toasts: ToastItem[];
   // Prompt candidates extracted from images (but not yet applied)
   promptCandidates: Array<{ itemId: string; filename: string; img: string; prompt: string }>;
+  // Local UI flag to show the welcome dialog on first-run
+  showWelcomeModal: boolean;
   // Show confirmation modal when promptCandidates is non-empty and user opted-in
   showPromptModal: boolean;
 };
@@ -48,6 +50,8 @@ const state = reactive<State>({
     usePromptMetadata: true,
     confirmPromptOnImport: true,
     confirmDeleteOnRemove: true,
+    // Show the welcome modal on first run (only shown when there are no projects)
+    showWelcomeOnStart: true,
     // Storage settings (default to browser)
     storage: 'browser',
     mongoApiUrl: '',
@@ -58,6 +62,7 @@ const state = reactive<State>({
   progress: { cur: 0, total: 0 },
   toasts: [],
   promptCandidates: [],
+  showWelcomeModal: false,
   showPromptModal: false
 });
 
@@ -202,6 +207,13 @@ function createProject(name = 'Untitled Project') {
 async function loadFirstProjectIfMissing() {
   const meta = await getAllMetaAny();
   if (meta.length === 0) {
+    // If we're showing the welcome modal (first-run), do not auto-create a default project.
+    // Let the user create a project via the welcome flow.
+    if (state.showWelcomeModal) {
+      // No projects created yet; leave currentId null for the UI to handle.
+      await refreshMetaBar();
+      return;
+    }
     const p = createProject('My First Project');
     await putProjectAny(p);
   } else {
@@ -738,7 +750,34 @@ function loadSettingsFromLocal() {
 
 /* ----------------- Init helper ----------------- */
 async function initStore() {
+  // Load persisted settings first so we can use the showWelcomeOnStart flag
   loadSettingsFromLocal();
+
+  // Check whether there are any existing projects (meta). If none (or only the
+  // auto-created default "My First Project" with zero items) and the welcome
+  // flag is enabled, show the welcome modal (first-run experience).
+  try {
+    const meta = await getAllMetaAny();
+    if (state.settings.showWelcomeOnStart ?? true) {
+      let showWelcome = false;
+      if (meta.length === 0) {
+        showWelcome = true;
+      } else if (meta.length === 1) {
+        // If the only project is the auto-created default and it has no items,
+        // treat this as first-run so the welcome screen appears.
+        const m = meta[0];
+        const isDefaultName = m.name === 'My First Project' || m.name === 'Untitled Project';
+        const isEmpty = !m.count || m.count === 0;
+        if (isDefaultName && isEmpty) showWelcome = true;
+      }
+      if (showWelcome) state.showWelcomeModal = true;
+    }
+  } catch (e) {
+    // ignore failures here and proceed with normal initialization
+    console.error('initStore: failed to fetch meta for welcome check', e);
+  }
+
+  // Ensure at least one project exists (this will create the default project if needed)
   await loadFirstProjectIfMissing();
   await refreshMetaBar();
 

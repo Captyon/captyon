@@ -38,6 +38,50 @@ watch(() => state.showPromptModal, (val) => {
   }
 });
 
+// When rename popover is open, keep the input synchronized with the current project.
+// This covers cases where the project loads or changes right before/during popover open.
+watch(currentProject, (p) => {
+  if (showRenamePopover.value) {
+    projectName.value = p?.name || '';
+  }
+});
+
+const welcomeNever = ref(false);
+
+watch(() => state.showWelcomeModal, (val) => {
+  const el = document.getElementById('welcomeModal') as HTMLDialogElement | null;
+  if (val) {
+    // reset local checkbox when opening
+    welcomeNever.value = false;
+    el?.showModal();
+  } else {
+    try { el?.close(); } catch {}
+  }
+});
+
+function closeWelcome() {
+  if (welcomeNever.value) {
+    // persist the user's choice to not show the welcome screen again
+    try { store.saveSettings({ showWelcomeOnStart: false }); } catch (e) { console.error(e); }
+  }
+  state.showWelcomeModal = false;
+}
+
+function welcomeCreateProject() {
+  onNewProject();
+  closeWelcome();
+}
+
+function welcomeAddImages() {
+  pickFiles();
+  closeWelcome();
+}
+
+function welcomeOpenSettings() {
+  openSettings();
+  closeWelcome();
+}
+
 function onNewProject() {
   const name = prompt('Project name?') || 'Untitled';
   store.createProject(name);
@@ -180,9 +224,28 @@ function openBulk() {
 
 // Project Settings modal handling
 const deleteProjectConfirmInput = ref('');
+const projectName = ref('');
+const renaming = ref(false);
+const nameError = ref('');
+const showRenamePopover = ref(false);
+const __rename_doc_click = (e: MouseEvent) => {
+  try {
+    if (!showRenamePopover.value) return;
+    const target = e.target as Node;
+    const pop = document.getElementById('renamePopover');
+    const btn = document.getElementById('renameBtn');
+    if (pop && (pop.contains(target) || (btn && btn.contains(target)))) return;
+    showRenamePopover.value = false;
+  } catch (err) {
+    // ignore
+  }
+};
 
 function openProjectSettings() {
   deleteProjectConfirmInput.value = '';
+  projectName.value = currentProject.value?.name || '';
+  nameError.value = '';
+  renaming.value = false;
   const el = document.getElementById('projectSettingsModal') as HTMLDialogElement | null;
   el?.showModal();
 }
@@ -202,6 +265,159 @@ async function confirmDeleteProject() {
   } catch (e) {
     console.error('deleteProject failed', e);
     store.addToast('Failed to delete project', 'warn');
+  }
+}
+
+async function renameProject() {
+  const proj = currentProject.value;
+  if (!proj) return;
+  const name = projectName.value?.trim();
+  nameError.value = '';
+  if (!name) {
+    nameError.value = 'Project name required';
+    return;
+  }
+  if (name.length > 100) {
+    nameError.value = 'Name too long (max 100 characters)';
+    return;
+  }
+  // Prevent duplicate names (case-insensitive) across other projects
+  const duplicate = state.order.some(id => id !== proj.id && (state.projects.get(id)?.name || '').toLowerCase() === name.toLowerCase());
+  if (duplicate) {
+    nameError.value = 'Another project already uses this name';
+    return;
+  }
+
+  const prevName = proj.name;
+  // Optimistic update
+  proj.name = name;
+  proj.updatedAt = Date.now();
+  renaming.value = true;
+  try {
+    await store.saveCurrentProject();
+    store.addToast('Project renamed', 'ok');
+    closeModal('projectSettingsModal');
+  } catch (e) {
+    console.error('renameProject failed', e);
+    // revert optimistic update
+    proj.name = prevName;
+    store.addToast('Failed to rename project', 'warn');
+    nameError.value = 'Save failed';
+  } finally {
+    renaming.value = false;
+  }
+}
+
+async function openRenamePopover() {
+  // Refresh meta so placeholders and project names are up-to-date
+  try { await store.refreshMetaBar(); } catch (e) { /* ignore */ }
+
+  // Try currentProject first
+  let proj = currentProject.value;
+
+  // Derive a candidate project id from select or state as fallback
+  let candidateId: string | null = null;
+  try {
+    const sel = projectSelect.value;
+    if (sel && sel.value) candidateId = sel.value;
+  } catch {}
+
+  if (!candidateId && state.currentId) candidateId = state.currentId;
+  if (!candidateId && Array.isArray(state.order) && state.order.length > 0) candidateId = state.order[0];
+
+  // If we don't have a full project in memory, attempt to load it (ensures name is populated)
+  if (!proj && candidateId) {
+    try {
+      const loaded = await store.loadProjectById(candidateId);
+      if (loaded) proj = loaded;
+    } catch {
+      // ignore load failures
+    }
+  }
+
+  // Populate the input from the resolved project, or fallback to select text / projects map
+  if (proj) {
+    projectName.value = proj.name || '';
+  } else {
+    try {
+      const sel = projectSelect.value;
+      if (sel) {
+        const opt = sel.selectedOptions && sel.selectedOptions[0];
+        if (opt && opt.textContent) {
+          projectName.value = opt.textContent.trim();
+        } else if (sel.value) {
+          projectName.value = (state.projects.get(sel.value)?.name) || sel.value || '';
+        } else {
+          projectName.value = '';
+        }
+      } else if (candidateId) {
+        projectName.value = (state.projects.get(candidateId)?.name) || candidateId || '';
+      } else {
+        projectName.value = '';
+      }
+    } catch {
+      projectName.value = '';
+    }
+  }
+
+  // Extra robust fallback: read currently selected option text directly from DOM (covers timing issues)
+  try {
+    const checkedOpt = document.querySelector('#projectSelect option:checked') as HTMLOptionElement | null;
+    if (checkedOpt && checkedOpt.textContent && checkedOpt.textContent.trim()) {
+      projectName.value = checkedOpt.textContent.trim();
+    }
+  } catch (e) {
+    // ignore
+  }
+
+  nameError.value = '';
+  renaming.value = false;
+  showRenamePopover.value = true;
+  // focus input after render
+  setTimeout(() => {
+    try { (document.getElementById('renameInput') as HTMLInputElement | null)?.focus(); } catch {}
+  }, 0);
+}
+
+function closeRenamePopover() {
+  showRenamePopover.value = false;
+  nameError.value = '';
+}
+
+async function saveRenameFromPopover() {
+  const proj = currentProject.value;
+  if (!proj) return;
+  const name = projectName.value?.trim();
+  nameError.value = '';
+  if (!name) {
+    nameError.value = 'Project name required';
+    return;
+  }
+  if (name.length > 100) {
+    nameError.value = 'Name too long (max 100 characters)';
+    return;
+  }
+  const duplicate = state.order.some(id => id !== proj.id && (state.projects.get(id)?.name || '').toLowerCase() === name.toLowerCase());
+  if (duplicate) {
+    nameError.value = 'Another project already uses this name';
+    return;
+  }
+
+  const prevName = proj.name;
+  proj.name = name;
+  proj.updatedAt = Date.now();
+  renaming.value = true;
+  try {
+    await store.saveCurrentProject();
+    store.addToast('Project renamed', 'ok');
+    showRenamePopover.value = false;
+  } catch (e) {
+    console.error('saveRenameFromPopover failed', e);
+    proj.name = prevName;
+    store.addToast('Failed to rename project', 'warn');
+    nameError.value = 'Save failed';
+  } finally {
+    renaming.value = false;
   }
 }
 
@@ -375,7 +591,12 @@ const __cs_onKeyUp = (e: KeyboardEvent) => {
 
 window.addEventListener('keydown', __cs_onKeyDown, { capture: true, passive: false });
 window.addEventListener('keyup', __cs_onKeyUp, { capture: true, passive: false });
-onUnmounted(() => { window.removeEventListener('keydown', __cs_onKeyDown, true); window.removeEventListener('keyup', __cs_onKeyUp, true); });
+window.addEventListener('click', __rename_doc_click, { capture: true });
+onUnmounted(() => {
+  window.removeEventListener('keydown', __cs_onKeyDown, true);
+  window.removeEventListener('keyup', __cs_onKeyUp, true);
+  window.removeEventListener('click', __rename_doc_click, true);
+});
 </script>
 
 <template>
@@ -431,9 +652,28 @@ onUnmounted(() => { window.removeEventListener('keydown', __cs_onKeyDown, true);
           <h1>Caption Studio</h1>
         </div>
       <div class="toolbar">
-        <select id="projectSelect" ref="projectSelect" @change="onProjectChange">
-          <option v-for="id in state.order" :key="id" :value="id">{{ state.projects.get(id)?.name || id }}</option>
-        </select>
+        <div style="position:relative; display:inline-flex; align-items:center;">
+<select id="projectSelect" ref="projectSelect" v-model="state.currentId" @change="onProjectChange" :disabled="state.order.length === 0">
+            <option v-if="state.order.length === 0" disabled value="">{{ state.showWelcomeModal ? 'No project — use the Welcome screen' : 'No projects' }}</option>
+            <option v-for="id in state.order" :key="id" :value="id">{{ state.projects.get(id)?.name || id }}</option>
+          </select>
+          <button id="renameBtn" class="btn small" style="margin-left:8px" @click="openRenamePopover" title="Rename project">✎</button>
+
+          <!-- Compact rename popover (toolbar) -->
+          <div id="renamePopover" v-if="showRenamePopover" @click.stop
+               style="position:absolute; z-index:1200; top:40px; left:0; background:var(--panel-bg,#0f1720); padding:10px; border-radius:8px; box-shadow:0 6px 18px rgba(0,0,0,0.6); display:flex; gap:8px; align-items:center; min-width:320px">
+            <input id="renameInput" type="text" v-model="projectName" :disabled="renaming" @keydown.enter.prevent="saveRenameFromPopover" @keydown.esc.prevent="closeRenamePopover"
+                   placeholder="Project name" style="flex:1; padding:8px; border-radius:6px; background:transparent; border:1px solid rgba(255,255,255,0.06)" />
+            <div style="display:flex; gap:8px; align-items:center">
+              <button class="btn" @click="closeRenamePopover" :disabled="renaming">Cancel</button>
+              <button class="btn primary" @click="saveRenameFromPopover" :disabled="renaming">
+                <span v-if="renaming">Saving…</span>
+                <span v-else>Save</span>
+              </button>
+            </div>
+            <div style="color:#ffcccc;font-size:12px;margin-left:8px" v-if="nameError">{{ nameError }}</div>
+          </div>
+        </div>
         <button class="btn" id="newProjectBtn" @click="onNewProject"><i class="icon">＋</i> New Project</button>
         <button class="btn" id="openBtn" @click="pickFiles"><i class="icon">📁</i> Add Images+Captions</button>
         <input ref="folderInput" id="folderInput" accept="image/*,.txt" multiple webkitdirectory directory type="file" class="hidden" @change="onFolderPicked" />
@@ -561,7 +801,18 @@ onUnmounted(() => { window.removeEventListener('keydown', __cs_onKeyDown, true);
     </div>
     <div class="modal-body">
       <div style="display:flex;flex-direction:column;gap:8px">
-        <div><strong>Name:</strong> {{ currentProject?.name || '—' }}</div>
+        <div>
+          <label><strong>Name:</strong></label>
+          <input type="text" v-model="projectName" placeholder="Project name" :disabled="renaming" />
+          <div style="color:#ffcccc;font-size:13px;margin-top:6px" v-if="nameError">{{ nameError }}</div>
+          <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px">
+            <button class="btn" @click="projectName = currentProject?.name || ''" :disabled="renaming">Reset</button>
+            <button class="btn primary" @click="renameProject" :disabled="renaming">
+              <span v-if="renaming">Saving…</span>
+              <span v-else>Rename</span>
+            </button>
+          </div>
+        </div>
         <div><strong>Items:</strong> {{ (currentProject?.items || []).length }}</div>
         <div><strong>Created:</strong> {{ currentProject?.createdAt ? new Date(currentProject.createdAt).toLocaleString() : '' }}</div>
         <div><strong>Updated:</strong> {{ currentProject?.updatedAt ? new Date(currentProject.updatedAt).toLocaleString() : '' }}</div>
@@ -709,6 +960,29 @@ onUnmounted(() => { window.removeEventListener('keydown', __cs_onKeyDown, true);
         <li>Ollama requires a local server. Some setups block browser calls due to CORS. If the test fails, run a small local proxy or configure CORS for Ollama.</li>
         <li>Nothing is uploaded anywhere.</li>
       </ul>
+    </div>
+  </dialog>
+
+  <dialog id="welcomeModal">
+    <div class="modal-head">
+      <h3 style="margin:0">Welcome to Caption Studio</h3>
+      <button class="btn small" data-close="welcomeModal" @click="() => closeWelcome()">✕</button>
+    </div>
+    <div class="modal-body">
+      <p style="margin-top:0">Quick setup — get started in seconds. Choose one of the options below to create your first project or import images.</p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
+        <button class="btn" @click="welcomeCreateProject"><i class="icon">＋</i> Create a Project</button>
+        <button class="btn" @click="welcomeAddImages"><i class="icon">📁</i> Add Images</button>
+        <button class="btn" @click="welcomeOpenSettings"><i class="icon">⚙</i> Settings</button>
+      </div>
+
+      <div style="margin-top:12px;display:flex;align-items:center;justify-content:space-between;gap:12px">
+        <label style="display:flex;align-items:center;gap:8px"><input type="checkbox" v-model="welcomeNever" /> Never show again</label>
+        <div style="display:flex;gap:8px">
+          <button class="btn" @click="closeWelcome">Close</button>
+          <button class="btn primary" @click="closeWelcome">Get started</button>
+        </div>
+      </div>
     </div>
   </dialog>
 
