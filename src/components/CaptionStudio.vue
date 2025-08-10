@@ -267,6 +267,38 @@ onMounted(async () => {
   // keyboard shortcuts were previously registered inside onMounted.
 });
  
+const deleteDontAsk = ref(false);
+
+function openDeleteConfirm() {
+  deleteDontAsk.value = false;
+  const el = document.getElementById('deleteConfirm') as HTMLDialogElement | null;
+  el?.showModal();
+}
+
+function doDelete() {
+  try {
+    (store as any).removeCurrentItem?.();
+  } catch (e) { console.error(e); }
+  closeModal('deleteConfirm');
+}
+
+function onConfirmDeleteFromModal() {
+  if (deleteDontAsk.value) {
+    store.saveSettings({ confirmDeleteOnRemove: false });
+  }
+  doDelete();
+}
+
+function confirmDelete() {
+  const it = currentItem.value;
+  if (!it) return;
+  if (!state.settings.confirmDeleteOnRemove) {
+    doDelete();
+    return;
+  }
+  openDeleteConfirm();
+}
+
 // Safe apply edits used by keyboard shortcuts to avoid uncaught promise/errors
 const applyEditsSafe = () => {
   try {
@@ -301,6 +333,7 @@ const __cs_onKeyDown = (e: KeyboardEvent) => {
     if (code === 'KeyG' && !e.shiftKey && e.altKey) { e.preventDefault(); e.stopImmediatePropagation(); try { (store as any).autoCaptionCurrent?.(); } catch(err){ console.error(err);} return; }
     if (code === 'KeyN' && !e.shiftKey && e.altKey) { e.preventDefault(); e.stopImmediatePropagation(); try { prev(); } catch(err){ console.error(err);} return; }
     if (code === 'KeyM' && !e.shiftKey && e.altKey) { e.preventDefault(); e.stopImmediatePropagation(); try { next(); } catch(err){ console.error(err);} return; }
+    if (code === 'KeyD' && !e.shiftKey && e.altKey) { e.preventDefault(); e.stopImmediatePropagation(); try { confirmDelete(); } catch(err){ console.error(err);} return; }
   } catch (err) { console.error('Shortcut handler error', err); }
 };
 
@@ -308,7 +341,7 @@ const __cs_onKeyUp = (e: KeyboardEvent) => {
   // fallback: prevent default on keyup for combos that might slip through
   if (!(e.ctrlKey || e.metaKey)) return;
   const code = (e as KeyboardEvent).code;
-  if (['KeyS','KeyG','KeyN','KeyM'].includes(code) && e.altKey) {
+  if (['KeyS','KeyG','KeyN','KeyM','KeyD'].includes(code) && e.altKey) {
     try { e.preventDefault(); e.stopImmediatePropagation(); } catch(ex) {}
   }
 };
@@ -452,6 +485,7 @@ onUnmounted(() => { window.removeEventListener('keydown', __cs_onKeyDown, true);
           <button class="btn small" id="genBtn" @click="store.autoCaptionCurrent">AI Generate <kbd>Alt+G</kbd></button>
           <button class="btn small" id="copyBtn" @click="copyFromFile">Copy From File</button>
           <button class="btn small" id="clearBtn" @click="clearCaption">Clear</button>
+          <button class="btn small" id="removeBtn" @click="confirmDelete">Remove <kbd>Alt+D</kbd></button>
           <div class="right" style="display:flex; gap:8px; align-items:center">
             <label>Tags</label>
             <input type="text" id="tagInput" v-model="tagInput" placeholder="comma separated" style="width: 210px" />
@@ -474,6 +508,7 @@ onUnmounted(() => { window.removeEventListener('keydown', __cs_onKeyDown, true);
           <span class="badge"><kbd>Alt+M</kbd> Next</span>
           <span class="badge"><kbd>Alt+S</kbd> Save</span>
           <span class="badge"><kbd>Alt+G</kbd> AI</span>
+          <span class="badge"><kbd>Alt+D</kbd> Remove</span>
           <span class="badge"><kbd>/</kbd> Search</span>
         </div>
       <div><span class="badge">Offline Mode</span></div>
@@ -520,11 +555,27 @@ onUnmounted(() => { window.removeEventListener('keydown', __cs_onKeyDown, true);
           <label><input type="checkbox" id="streamOllama" v-model="state.settings.stream"> Stream responses</label>
           <label><input type="checkbox" id="usePromptMeta" v-model="state.settings.usePromptMetadata"> Scan images for embedded prompts</label>
           <label><input type="checkbox" id="confirmPrompt" v-model="state.settings.confirmPromptOnImport"> Confirm before applying embedded prompts</label>
+          <label><input type="checkbox" id="confirmDelete" v-model="state.settings.confirmDeleteOnRemove"> Confirm before deleting images</label>
         </div>
       </div>
       <div style="display:flex; gap:8px; justify-content:flex-end">
         <button class="btn" id="resetSettingsBtn" @click="() => { state.settings.ollamaUrl='http://localhost:11434'; state.settings.ollamaModel='llama3.2-vision'; state.settings.promptTpl='Describe this image as a short, high quality caption. Focus on the main subject, action, style, lighting and mood. Keep it concise.'; state.settings.stream=false; }">Reset</button>
         <button class="btn primary" id="saveSettingsBtn" @click="saveSettingsAndClose">Save</button>
+      </div>
+    </div>
+  </dialog>
+
+  <dialog id="deleteConfirm">
+    <div class="modal-head">
+      <h3 style="margin:0">Delete image</h3>
+      <button class="btn small" data-close="deleteConfirm" @click="() => closeModal('deleteConfirm')">✕</button>
+    </div>
+    <div class="modal-body">
+      <p>Delete this image from the current project? This action cannot be undone.</p>
+      <label style="display:flex;align-items:center;gap:8px"><input type="checkbox" v-model="deleteDontAsk" /> Do not ask next time</label>
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px">
+        <button class="btn" @click="() => closeModal('deleteConfirm')">Cancel</button>
+        <button class="btn primary" @click="onConfirmDeleteFromModal">Delete</button>
       </div>
     </div>
   </dialog>

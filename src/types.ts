@@ -27,6 +27,7 @@ export type Settings = {
   stream: boolean;
   usePromptMetadata: boolean;
   confirmPromptOnImport: boolean;
+  confirmDeleteOnRemove: boolean;
 };
 
 export type ToastKind = '' | 'ok' | 'warn' | 'danger';

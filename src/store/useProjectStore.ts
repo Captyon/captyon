@@ -45,7 +45,8 @@ const state = reactive<State>({
       'Describe this image as a short, high quality caption. Focus on the main subject, action, style, lighting and mood. Keep it concise.',
     stream: false,
     usePromptMetadata: true,
-    confirmPromptOnImport: true
+    confirmPromptOnImport: true,
+    confirmDeleteOnRemove: true
   },
   selection: new Set(),
   status: 'Idle',
@@ -510,6 +511,30 @@ function clearList() {
   state.currentIndex = 0;
 }
 
+function removeCurrentItem() {
+  const proj = getCurrentProject();
+  if (!proj) return;
+  const idx = state.currentIndex;
+  if (idx < 0 || idx >= proj.items.length) return;
+  const removed = proj.items.splice(idx, 1)[0];
+  // clamp currentIndex to valid range
+  if (proj.items.length === 0) {
+    state.currentIndex = 0;
+  } else {
+    state.currentIndex = Math.min(idx, proj.items.length - 1);
+  }
+  proj.cursor = state.currentIndex;
+  putProject(proj).catch(console.error);
+  addToast(`Removed image: ${removed.filename}`, 'ok');
+
+  // If there are any pending promptCandidates for this item, drop them
+  const candIdx = state.promptCandidates.findIndex(c => c.itemId === removed.id);
+  if (candIdx !== -1) {
+    state.promptCandidates.splice(candIdx, 1);
+    if (state.promptCandidates.length === 0) state.showPromptModal = false;
+  }
+}
+
 /* ----------------- Settings ----------------- */
 function saveSettings(newSettings: Partial<Settings>) {
   Object.assign(state.settings, newSettings);
@@ -562,6 +587,7 @@ export function useProjectStore() {
     next,
     toggleSelect,
     clearList,
+    removeCurrentItem,
     saveSettings,
     testOllama: async () => {
       try {
