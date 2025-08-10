@@ -67,6 +67,20 @@ export async function getProject(id: string): Promise<Project | null> {
   });
 }
 
+export async function deleteProject(id: string): Promise<void> {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE, 'readwrite');
+    try {
+      tx.objectStore(STORE).delete(id);
+    } catch (err) {
+      tx.onerror = () => reject(tx.error || err);
+    }
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
 export async function getAllMeta(): Promise<Array<{ id: string; name: string; count: number; updatedAt: number }>> {
   const db = await openDB();
   return new Promise((resolve, reject) => {

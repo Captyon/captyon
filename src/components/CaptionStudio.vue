@@ -63,7 +63,7 @@ async function pickFiles() {
       const dir = await (window as any).showDirectoryPicker();
       const files: File[] = [];
       async function recurse(d: any) {
-        for await (const [name, handle] of d.entries()) {
+        for await (const [, handle] of d.entries()) {
           if (handle.kind === 'file') {
             try {
               const f = await handle.getFile();
@@ -176,6 +176,33 @@ function openHelp() {
 function openBulk() {
   const el = document.getElementById('bulkModal') as HTMLDialogElement | null;
   el?.showModal();
+}
+
+// Project Settings modal handling
+const deleteProjectConfirmInput = ref('');
+
+function openProjectSettings() {
+  deleteProjectConfirmInput.value = '';
+  const el = document.getElementById('projectSettingsModal') as HTMLDialogElement | null;
+  el?.showModal();
+}
+
+async function confirmDeleteProject() {
+  const proj = currentProject.value;
+  if (!proj) return;
+  if (deleteProjectConfirmInput.value !== proj.name) {
+    store.addToast('Project name does not match', 'warn');
+    return;
+  }
+  try {
+    const ok = await store.deleteProject(proj.id);
+    if (ok) {
+      closeModal('projectSettingsModal');
+    }
+  } catch (e) {
+    console.error('deleteProject failed', e);
+    store.addToast('Failed to delete project', 'warn');
+  }
 }
 
 function selectThumb(filteredIdx: number) {
@@ -418,6 +445,7 @@ onUnmounted(() => { window.removeEventListener('keydown', __cs_onKeyDown, true);
         <button class="btn" id="saveBtn" @click="saveProject"><i class="icon">💾</i> Save</button>
         <button class="btn" id="exportBtn" @click="exportProject"><i class="icon">⬇</i> Export JSON</button>
         <button class="btn primary" id="autoBtn" @click="store.autoCaptionBulk"><i class="icon">✨</i> Auto Caption</button>
+        <button class="btn" id="projectSettingsBtn" @click="openProjectSettings"><i class="icon">🧰</i> Project Settings</button>
         <button class="btn" id="settingsBtn" @click="openSettings"><i class="icon">⚙</i> Settings</button>
         <button class="btn ghost" id="helpBtn" @click="openHelp"><i class="icon">❓</i> Help</button>
       </div>
@@ -525,6 +553,39 @@ onUnmounted(() => { window.removeEventListener('keydown', __cs_onKeyDown, true);
       </div>
     </div>
   </div>
+
+  <dialog id="projectSettingsModal">
+    <div class="modal-head">
+      <h3 style="margin:0">Project Settings</h3>
+      <button class="btn small" data-close="projectSettingsModal" @click="() => closeModal('projectSettingsModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <div><strong>Name:</strong> {{ currentProject?.name || '—' }}</div>
+        <div><strong>Items:</strong> {{ (currentProject?.items || []).length }}</div>
+        <div><strong>Created:</strong> {{ currentProject?.createdAt ? new Date(currentProject.createdAt).toLocaleString() : '' }}</div>
+        <div><strong>Updated:</strong> {{ currentProject?.updatedAt ? new Date(currentProject.updatedAt).toLocaleString() : '' }}</div>
+        <div style="margin-top:8px">
+          <button class="btn" @click="store.exportProject">Export Project</button>
+        </div>
+      </div>
+
+      <hr />
+
+      <div style="margin-top:12px; padding:12px; border-radius:6px; background:#3a0f0f; color:#ffdede">
+        <h4 style="margin:0 0 8px 0">Danger Zone</h4>
+        <p>Deleting a project is permanent. This will remove the project and its images from local storage.</p>
+        <label style="display:flex;flex-direction:column;gap:6px; margin-top:8px">
+          <span>Type the project name to confirm:</span>
+          <input type="text" v-model="deleteProjectConfirmInput" placeholder="Type project name to confirm" />
+        </label>
+        <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px">
+          <button class="btn" @click="() => closeModal('projectSettingsModal')">Cancel</button>
+          <button class="btn" style="background:#b91c1c;color:white" :disabled="deleteProjectConfirmInput !== (currentProject && currentProject.name) " @click="confirmDeleteProject">Delete Project</button>
+        </div>
+      </div>
+    </div>
+  </dialog>
 
   <dialog id="settingsModal">
     <div class="modal-head">
