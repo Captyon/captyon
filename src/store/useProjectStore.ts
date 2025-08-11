@@ -31,6 +31,8 @@ type State = {
   showWelcomeModal: boolean;
   // Show confirmation modal when promptCandidates is non-empty and user opted-in
   showPromptModal: boolean;
+  // Whether curation (tinder-like) mode is active
+  curationMode?: boolean;
 };
 
 const state = reactive<State>({
@@ -64,7 +66,9 @@ const state = reactive<State>({
   toasts: [],
   promptCandidates: [],
   showWelcomeModal: false,
-  showPromptModal: false
+  showPromptModal: false,
+  // Curation mode off by default
+  curationMode: false
 });
 
 /* ----------------- Toasts ----------------- */
@@ -870,7 +874,98 @@ function rejectAllPromptCandidates() {
 
 /* ----------------- End prompt candidates ----------------- */
 
-/* ----------------- Auto caption (Ollama) ----------------- */
+/* ----------------- Curation ----------------- */
+/**
+ * Return items to include in the curation queue.
+ * By default only return items without a curationStatus (uncurated).
+ */
+function getCurationQueue(includeCurated = false) {
+  const proj = getCurrentProject();
+  if (!proj) return [];
+  return proj.items.filter(it => includeCurated ? true : !(it.curationStatus));
+}
+
+/**
+ * Set an item's curation status ('accepted' | 'rejected'), persist the project,
+ * and advance to the next un-curated item. When accepted, also mark selected.
+ */
+function setCurationStatus(itemId: string, status: 'accepted' | 'rejected') {
+  const proj = getCurrentProject();
+  if (!proj) return;
+  const idx = proj.items.findIndex(i => i.id === itemId);
+  if (idx === -1) return;
+  const it = proj.items[idx];
+  // update item
+  it.curationStatus = status;
+  if (status === 'accepted') it.selected = true;
+  proj.updatedAt = Date.now();
+  // persist change
+  putProjectAny(proj).catch(console.error);
+  addToast(`${status === 'accepted' ? 'Accepted' : 'Rejected'}: ${it.filename}`, status === 'accepted' ? 'ok' : 'warn');
+
+  // Advance to the next un-curated item in the project
+  const remaining = proj.items.findIndex((x, i) => !x.curationStatus && i > idx);
+  if (remaining !== -1) {
+    state.currentIndex = remaining;
+    proj.cursor = state.currentIndex;
+  } else {
+    // If none to the right, try from start
+    const first = proj.items.findIndex(x => !x.curationStatus);
+    if (first !== -1) {
+      state.currentIndex = first;
+      proj.cursor = state.currentIndex;
+    } else {
+      // No more items to curate — exit curation mode
+      state.curationMode = false;
+      addToast('Curation complete', 'ok');
+    }
+  }
+}
+
+/**
+ * Remove all rejected items from the current project and persist.
+ * Returns the number removed.
+ */
+function removeRejectedFromProject() {
+  const proj = getCurrentProject();
+  if (!proj) return 0;
+  const before = proj.items.length;
+  proj.items = proj.items.filter(i => i.curationStatus !== 'rejected');
+  const removed = before - proj.items.length;
+  // clamp currentIndex
+  state.currentIndex = Math.min(state.currentIndex, Math.max(0, proj.items.length - 1));
+  proj.cursor = state.currentIndex;
+  proj.updatedAt = Date.now();
+  putProjectAny(proj).catch(console.error);
+  addToast(`Removed ${removed} rejected item${removed === 1 ? '' : 's'}`, removed ? 'ok' : '');
+  return removed;
+}
+
+/**
+ * Start/stop helpers for curation mode.
+ */
+function startCuration(includeCurated = false) {
+  const proj = getCurrentProject();
+  if (!proj) {
+    addToast('No project selected', 'warn');
+    return;
+  }
+  state.curationMode = true;
+  // Position cursor to first relevant item
+  if (!includeCurated) {
+    const idx = proj.items.findIndex(i => !i.curationStatus);
+    state.currentIndex = idx !== -1 ? idx : 0;
+  } else {
+    state.currentIndex = proj.cursor || 0;
+  }
+  proj.cursor = state.currentIndex;
+}
+
+function stopCuration() {
+  state.curationMode = false;
+}
+
+ /* ----------------- Auto caption (Ollama) ----------------- */
 async function autoCaptionCurrent() {
   const it = currentItem();
   if (!it) {
@@ -1157,6 +1252,12 @@ export function useProjectStore() {
     acceptPromptCandidate,
     rejectPromptCandidate,
     acceptAllPromptCandidates,
-    rejectAllPromptCandidates
+    rejectAllPromptCandidates,
+    // Curation helpers
+    setCurationStatus,
+    startCuration,
+    stopCuration,
+    removeRejectedFromProject,
+    getCurationQueue
   };
 }

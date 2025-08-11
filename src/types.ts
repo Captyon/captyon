@@ -12,6 +12,9 @@ export type Item = {
   // Optional media metadata for video files
   mediaType?: 'image' | 'video' | string;
   size?: number; // bytes
+
+  // Curation status accept/reject workflow
+  curationStatus?: 'accepted' | 'rejected';
 };
 
 export type Project = {
