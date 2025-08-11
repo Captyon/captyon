@@ -82,6 +82,7 @@ const startPanX = ref(0);
 const startPanY = ref(0);
 
 function onPointerDown(e: PointerEvent) {
+  if (state.curationMode) return;
   // Only primary button for mouse; touch will have button === 0 as well
   if ((e as any).button !== undefined && (e as any).button !== 0) return;
   const el = e.currentTarget as HTMLElement | null;
@@ -95,6 +96,7 @@ function onPointerDown(e: PointerEvent) {
 }
 
 function onPointerMove(e: PointerEvent) {
+  if (state.curationMode) return;
   if (!isDragging.value) return;
   const dx = e.clientX - dragStartX.value;
   const dy = e.clientY - dragStartY.value;
@@ -104,6 +106,7 @@ function onPointerMove(e: PointerEvent) {
 }
 
 function onPointerUp(e: PointerEvent) {
+  if (state.curationMode) return;
   const el = e.currentTarget as HTMLElement | null;
   try { el?.releasePointerCapture(e.pointerId); } catch {}
   isDragging.value = false;
