@@ -20,7 +20,7 @@
     </div>
 
     <div class="viewport" id="viewport">
-      <div class="canvas-wrap" style="position:relative">
+      <div class="canvas-wrap" :class="{ dragging: isDragging }" @pointerdown="onPointerDown" @pointermove="onPointerMove" @pointerup="onPointerUp" @pointercancel="onPointerUp" @pointerleave="onPointerUp" @wheel.prevent="onWheel" style="position:relative; touch-action: none; user-select: none; -webkit-user-drag: none">
         <div v-if="dimInfo?.source === 'auto'" style="position:absolute; top:8px; right:8px; background:rgba(0,0,0,0.55); color:#fff; padding:4px 8px; border-radius:4px; font-size:12px; pointer-events:none; z-index:10">Dimmed (auto)</div>
         <CurationCard v-if="state.curationMode" />
         <template v-else>
@@ -61,7 +61,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import { useProjectStore } from '../../store/useProjectStore';
 import { useVideoMeta } from '../../composables/useVideoMeta';
 import CurationCard from './CurationCard.vue';
@@ -74,10 +74,77 @@ const currentItem = computed(() => store.currentItem());
 const videoMetaCompos = useVideoMeta();
 const { videoMeta, onVideoLoadedMeta, formatDuration } = videoMetaCompos;
 
+// Pointer-drag panning state (mouse & touch)
+const isDragging = ref(false);
+const dragStartX = ref(0);
+const dragStartY = ref(0);
+const startPanX = ref(0);
+const startPanY = ref(0);
+
+function onPointerDown(e: PointerEvent) {
+  // Only primary button for mouse; touch will have button === 0 as well
+  if ((e as any).button !== undefined && (e as any).button !== 0) return;
+  const el = e.currentTarget as HTMLElement | null;
+  try { el?.setPointerCapture(e.pointerId); } catch {}
+  isDragging.value = true;
+  dragStartX.value = e.clientX;
+  dragStartY.value = e.clientY;
+  startPanX.value = state.panX;
+  startPanY.value = state.panY;
+  e.preventDefault();
+}
+
+function onPointerMove(e: PointerEvent) {
+  if (!isDragging.value) return;
+  const dx = e.clientX - dragStartX.value;
+  const dy = e.clientY - dragStartY.value;
+  state.panX = startPanX.value + dx;
+  state.panY = startPanY.value + dy;
+  e.preventDefault();
+}
+
+function onPointerUp(e: PointerEvent) {
+  const el = e.currentTarget as HTMLElement | null;
+  try { el?.releasePointerCapture(e.pointerId); } catch {}
+  isDragging.value = false;
+}
+
+function onWheel(e: WheelEvent) {
+  const wrapper = document.querySelector('.canvas-wrap') as HTMLElement | null;
+  if (!wrapper) return;
+  const rect = wrapper.getBoundingClientRect();
+  const prevScale = state.zoom / 100;
+
+  // Compute new zoom (tuned step)
+  const delta = -e.deltaY; // wheel up -> positive
+  const step = delta * 0.05; // adjust sensitivity
+  let newZoom = Math.round(state.zoom + step);
+  newZoom = Math.max(10, Math.min(300, newZoom));
+  const newScale = newZoom / 100;
+  if (newScale === prevScale) {
+    // nothing to do
+    e.preventDefault();
+    return;
+  }
+
+  // Pointer position relative to wrapper
+  const pointerX = e.clientX - rect.left;
+  const pointerY = e.clientY - rect.top;
+  const centerX = rect.width / 2;
+  const centerY = rect.height / 2;
+
+  // Adjust pan so the content under the cursor stays fixed while zooming
+  state.panX = state.panX + (pointerX - centerX) * ((1 / newScale) - (1 / prevScale));
+  state.panY = state.panY + (pointerY - centerY) * ((1 / newScale) - (1 / prevScale));
+
+  state.zoom = newZoom;
+  e.preventDefault();
+}
+
 function prev() { store.prev(); }
 function next() { store.next(); }
-function fit() { state.zoom = 100; }
-function fill() { state.zoom = 150; }
+function fit() { state.zoom = 100; state.panX = 0; state.panY = 0; }
+function fill() { state.zoom = 150; state.panX = 0; state.panY = 0; }
 function rotate() { state.rotation = (state.rotation + 90) % 360; }
 
 const dimInfo = computed(() => {
@@ -104,7 +171,7 @@ const dimInfo = computed(() => {
 
 const mainMediaStyle = computed(() => {
   const styles: Record<string, any> = {
-    transform: `scale(${state.zoom/100}) rotate(${state.rotation}deg)`
+    transform: `translate(${state.panX}px, ${state.panY}px) scale(${state.zoom/100}) rotate(${state.rotation}deg)`
   };
 
   const di = dimInfo.value;

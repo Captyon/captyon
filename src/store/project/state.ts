@@ -15,6 +15,8 @@ export type State = {
   currentIndex: number;
   zoom: number;
   rotation: number;
+  panX: number;
+  panY: number;
   filter: { text: string; onlyMissing: boolean; onlySelected: boolean };
   settings: Settings;
   manualDimPercent?: number;
@@ -39,6 +41,8 @@ export const state = reactive<State>({
   currentIndex: -1,
   zoom: 100,
   rotation: 0,
+  panX: 0,
+  panY: 0,
   filter: { text: '', onlyMissing: false, onlySelected: false },
   settings: {
     ollamaUrl: 'http://localhost:11434',

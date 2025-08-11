@@ -341,8 +341,9 @@ aside { display: grid; grid-template-rows: auto auto 1fr; min-width: 0 }
 .viewer { display: grid; grid-template-rows: auto 1fr auto; min-width: 0 }
 .viewer-tools, .editor-tools { padding: 8px 10px; border-bottom: 1px solid var(--border); display: flex; gap: 8px; align-items: center; flex-wrap: wrap }
 .viewport { position: relative; overflow: auto; background: repeating-conic-gradient(#0a0f16 0% 25%, #0b121a 0% 50%) 50% / 24px 24px; border-bottom: 1px solid var(--border) }
-.canvas-wrap { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center }
+.canvas-wrap { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; cursor: grab; touch-action: none; user-select: none; -webkit-user-drag: none; }
 .canvas-wrap img { max-width: 100%; max-height: 100%; transform-origin: center; image-rendering: auto }
+.canvas-wrap.dragging { cursor: grabbing; }
 
 .viewer-footer { padding: 8px 10px; display: flex; gap: 10px; align-items: center; justify-content: space-between }
 .meter { height: 6px; background: #0b1119; border: 1px solid var(--border); border-radius: 999px; overflow: hidden; width: 200px }
