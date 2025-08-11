@@ -32,7 +32,7 @@
       </div>
     </div>
 
-    <!-- Improved Curation exit confirmation dialog (teleported to body so it's outside transformed stacking contexts) -->
+    <!-- Improved, accessible, and informative Curation exit confirmation dialog (teleported to body so it's outside transformed stacking contexts) -->
     <teleport to="body">
       <div
         v-if="showCurationExitConfirm"
@@ -42,7 +42,7 @@
         aria-hidden="false"
       >
         <!-- Backdrop to block pointer events on underlying UI -->
-        <div style="position:absolute; inset:0; background:rgba(0,0,0,0.45);"></div>
+        <div style="position:absolute; inset:0; background:rgba(0,0,0,0.55); backdrop-filter: blur(4px);"></div>
 
         <!-- Modal panel -->
         <div
@@ -52,30 +52,95 @@
           :aria-labelledby="'cs-curation-exit-title'"
           :aria-describedby="'cs-curation-exit-desc'"
           tabindex="-1"
-          style="position:relative; background:var(--panel-bg,#0f1720); padding:20px; border-radius:10px; box-shadow:0 12px 40px rgba(0,0,0,0.7); width:460px; max-width:94%; z-index:100000; outline: none; color: #e6eef8;"
+          style="position:relative; background:var(--panel-bg,#0f1720); padding:18px; border-radius:12px; box-shadow:0 16px 50px rgba(0,0,0,0.75); width:720px; max-width:96%; max-height:calc(100vh - 80px); overflow:auto; z-index:100000; outline: none; color: #e6eef8;"
         >
-          <div style="display:flex;justify-content:space-between;align-items:center">
-            <h3 id="cs-curation-exit-title" style="margin:0; font-size:18px;">Exit Curation</h3>
-            <button class="btn small" @click="cancelExitCuration" aria-label="Close dialog">✕</button>
+          <div style="display:flex;justify-content:space-between;align-items:flex-start; gap:12px;">
+            <div style="display:flex;gap:12px;align-items:center;flex:1;">
+              <div style="width:44px;height:44px;border-radius:10px;background:linear-gradient(135deg,#111827,#0b1220);display:flex;align-items:center;justify-content:center;font-size:22px;">🃏</div>
+              <div style="display:flex;flex-direction:column;">
+                <h3 id="cs-curation-exit-title" style="margin:0; font-size:18px;">Exit Curation</h3>
+                <p style="margin:6px 0 0 0; font-size:13px; opacity:0.9;" id="cs-curation-exit-desc">
+                  You have <strong>{{ curationCounts.rejected }}</strong> rejected item<span v-if="curationCounts.rejected !== 1">s</span> and <strong>{{ curationCounts.remaining }}</strong> remaining.
+                  Choose whether to remove rejected items from the project when you exit curation mode.
+                </p>
+              </div>
+            </div>
+
+            <button class="btn small" @click="cancelExitCuration" aria-label="Close dialog" style="align-self:flex-start">✕</button>
           </div>
 
-          <div id="cs-curation-exit-desc" style="padding-top:12px; color:inherit; font-size:14px;">
-            <p style="margin:0 0 10px 0; color:inherit;">
-              You have <strong>{{ curationCounts.rejected }}</strong> rejected item<span v-if="curationCounts.rejected !== 1">s</span> and <strong>{{ curationCounts.remaining }}</strong> remaining.
-              Do you want to remove rejected items from the project when exiting curation mode?
-            </p>
+          <!-- Rejected items preview (if any) -->
+          <div v-if="rejectedItems.length" style="margin-top:14px; display:flex; gap:12px; align-items:flex-start; flex-wrap:wrap;">
+            <div style="flex:1; min-width:300px;">
+              <div style="margin-bottom:8px; font-size:13px; color:#cfe8ff;">Preview rejected items — click a thumbnail to view it in the editor</div>
+              <div style="display:flex; gap:8px; overflow-x:auto; padding-bottom:6px; max-width:100%; max-height:84px; align-items:center;">
+                <div
+                  v-for="(it, idx) in rejectedPreview"
+                  :key="it.id"
+                  @click="previewItem(idx)"
+                  :title="it.filename"
+                  :style="{
+                    border: previewIndex === idx ? '2px solid rgba(99,102,241,0.95)' : '2px solid transparent',
+                    borderRadius: '8px',
+                    padding: '2px',
+                    cursor: 'pointer',
+                    minWidth: '96px',
+                    minHeight: '60px',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    background: '#000'
+                  }"
+                >
+                  <template v-if="it.mediaType === 'video'">
+                    <video :src="it.img || ''" muted playsinline preload="metadata" style="width:96px;height:60px;object-fit:cover;border-radius:6px;"></video>
+                  </template>
+                  <template v-else>
+                    <img :src="it.img || ''" alt="" style="width:96px;height:60px;object-fit:cover;border-radius:6px;" />
+                  </template>
+                </div>
 
-            <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:14px;">
+                <div v-if="moreCount > 0" style="min-width:96px;min-height:60px;border-radius:6px;background:rgba(255,255,255,0.03);display:flex;align-items:center;justify-content:center;color:#9fb0c9;font-size:13px;padding:6px 8px;">
+                  +{{ moreCount }} more
+                </div>
+              </div>
+            </div>
+
+            <div style="min-width:260px; display:flex; flex-direction:column; gap:10px; color:#cfe8ff;">
+              <div style="display:flex;align-items:center;justify-content:space-between;">
+                <label style="font-size:13px; color:#cfe8ff; margin:0;">Remove rejected items</label>
+                <label style="display:inline-flex; align-items:center; gap:8px; cursor:pointer;">
+                  <input type="checkbox" v-model="removeRejectedLocal" aria-label="Remove rejected items when exiting" />
+                </label>
+              </div>
+
+              <div style="font-size:12px; color:#cfe8ff;">
+                Removing rejected items is permanent for this project (you can undo by importing a saved copy). A toast will confirm how many were removed.
+              </div>
+            </div>
+
+            <!-- Actions row spans the full width so buttons remain on one line -->
+            <div style="width:100%; display:flex; justify-content:flex-end; gap:8px; align-items:center; margin-top:8px;">
+              <button class="btn" @click="cancelExitCuration" ref="firstAction" style="white-space:nowrap;">Cancel</button>
+              <button class="btn" @click="() => confirmExitCuration(false)" style="white-space:nowrap;">Exit (keep rejected)</button>
+                <button
+                  class="btn"
+                  :style="[destructiveStyle, !removeRejectedLocal ? { opacity: 0.55, pointerEvents: 'none', cursor: 'not-allowed' } : {}]"
+                  @click="handleDestructiveExit"
+                  ref="destructiveAction"
+                  :title="destructiveTitle"
+                  :disabled="!removeRejectedLocal"
+                >
+                  Exit
+                </button>
+            </div>
+          </div>
+
+          <!-- Fallback when there are no rejected items -->
+          <div v-else style="margin-top:14px; display:flex; justify-content:flex-end;">
+            <div style="display:flex; gap:8px;">
               <button class="btn" @click="cancelExitCuration" ref="firstAction">Cancel</button>
-              <button class="btn" @click="() => confirmExitCuration(false)">Exit (keep rejected)</button>
-              <button
-                class="btn"
-                :style="destructiveStyle"
-                @click="() => confirmExitCuration(true)"
-                ref="destructiveAction"
-              >
-                Exit and remove rejected
-              </button>
+              <button class="btn" @click="() => confirmExitCuration(false)">Exit</button>
             </div>
           </div>
         </div>
@@ -151,7 +216,7 @@ const badgeStyle = computed(() => {
   } as Record<string, any>;
 });
 
-// Modal focus management
+ // Modal focus management
 const modalPanel = ref<HTMLElement | null>(null);
 const firstAction = ref<HTMLElement | null>(null);
 const destructiveAction = ref<HTMLElement | null>(null);
@@ -163,6 +228,66 @@ const destructiveStyle = {
   padding: '8px 12px',
   fontWeight: 700,
 };
+
+// Local modal state
+const removeRejectedLocal = ref(false);
+const previewIndex = ref(0);
+
+const rejectedItems = computed(() => {
+  const proj = store.getCurrentProject();
+  if (!proj) return [];
+  return proj.items.filter((i: any) => i.curationStatus === 'rejected');
+});
+
+const rejectedPreview = computed(() => {
+  const arr = (rejectedItems as any).value ?? [];
+  return arr.slice(0, 5);
+});
+
+const moreCount = computed(() => {
+  const arr = (rejectedItems as any).value ?? [];
+  return Math.max(0, arr.length - 5);
+});
+
+const destructiveTitle = computed(() => {
+  return removeRejectedLocal.value
+    ? 'Remove rejected items and exit'
+    : 'Check \"Remove rejected items\" to enable';
+});
+
+// Handler for the destructive exit button — prevents accidental closure when checkbox is unchecked.
+function handleDestructiveExit() {
+  if (removeRejectedLocal.value) {
+    // confirmed destructive action
+    confirmExitCuration(true);
+    return;
+  }
+  // Not enabled: focus the checkbox and show a toast to inform the user.
+  try {
+    const cb = (modalPanel.value as HTMLElement | null)?.querySelector('input[type="checkbox"]') as HTMLInputElement | null;
+    cb?.focus();
+  } catch {}
+  try {
+    // use store toast helper to inform the user
+    (store.addToast as any)?.('Check \"Remove rejected items\" to enable', 'warn');
+  } catch {}
+}
+
+// Simple preview helper — sets the project's current index so the main viewer shows the selected rejected item.
+function previewItem(idx: number) {
+  const proj = store.getCurrentProject();
+  if (!proj) return;
+  const target = (rejectedItems as any).value?.[idx];
+  if (!target) return;
+  const items = proj.items;
+  const globalIndex = items.findIndex((i: any) => i.id === target.id);
+  if (globalIndex !== -1) {
+    // Update store cursor/currentIndex to show the item in the editor/viewer
+    store.state.currentIndex = globalIndex;
+    proj.cursor = globalIndex;
+  }
+  previewIndex.value = idx;
+}
 
 // Handle Escape and simple focus-trap for the modal
 function onModalKeyDown(e: KeyboardEvent) {
