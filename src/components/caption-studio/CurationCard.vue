@@ -99,11 +99,7 @@ const {
   openCurationExitConfirm,
   cancelExitCuration,
   confirmExitCuration,
-  curationCounts,
-  commitCuration,
-  curationPointerDown,
-  curationPointerMove,
-  curationPointerUp,
+  curationCounts
 } = useCuration();
 
 // currentItem as a computed ref (unwraps in template)
@@ -208,6 +204,26 @@ watch(showCurationExitConfirm, async (val) => {
       // Focus first action for keyboard users
       (firstAction.value || modalPanel.value)?.focus();
     } catch {}
+  }
+});
+
+ // When there are no remaining un-curated items, open the exit-confirm dialog so the user
+// can choose whether to remove rejected items or just exit curation mode.
+// Watch the composable's curationCounts (works whether it's a plain object or a ref).
+const remainingFromCuration = computed(() => {
+  const cc: any = curationCounts as any;
+  if (!cc) return 0;
+  if (typeof cc.value !== 'undefined') return cc.value?.remaining ?? 0;
+  return cc?.remaining ?? 0;
+});
+
+watch(remainingFromCuration, (remaining) => {
+  if (remaining === 0 && store.state.curationMode && !showCurationExitConfirm.value) {
+    setTimeout(() => {
+      try {
+        openCurationExitConfirm();
+      } catch {}
+    }, 300);
   }
 });
 </script>

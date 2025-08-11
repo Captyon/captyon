@@ -42,8 +42,6 @@ export function setCurationStatus(itemId: string, status: 'accepted' | 'rejected
       state.currentIndex = first;
       proj.cursor = state.currentIndex;
     } else {
-      // No more items to curate — exit curation mode
-      state.curationMode = false;
       addToast('Curation complete', 'ok');
     }
   }
