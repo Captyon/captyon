@@ -1,13 +1,15 @@
 <#
 windows.ps1 - Setup and run helper for Windows
-Usage:
-  .\windows.ps1 -Action setup    # install deps and create .env files
-  .\windows.ps1 -Action run      # run the dev server (npm run dev)
-  .\windows.ps1 -Action both     # do setup then run
 
-Drop this file in the project as scripts/windows.ps1 and run from PowerShell:
-  cd <project-root>\scripts
-  .\windows.ps1 -Action setup
+Usage:
+  From project root (recommended for non-technical users):
+    Double-click the `run.bat` file in the project root, or run:
+      .\run.bat
+
+  From PowerShell (advanced users):
+    .\scripts\windows.ps1 -Action setup    # install deps and create .env files
+    .\scripts\windows.ps1 -Action run      # run the dev server (npm run dev)
+    .\scripts\windows.ps1 -Action both     # do setup then run
 
 This script:
  - Verifies Node and npm are available
@@ -15,6 +17,10 @@ This script:
  - Runs `npm install` in the server/ folder
  - Copies .env.example -> .env (if .env doesn't exist) for project root and server
  - Optionally runs `npm run dev`
+
+Notes for non-technical users:
+ - Use the provided `run.bat` in the project root to run setup + start the dev server.
+ - The batch file launches PowerShell with ExecutionPolicy bypass so you don't need to change system policies manually.
 #>
 
 param(
