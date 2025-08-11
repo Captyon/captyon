@@ -18,7 +18,8 @@ const app = express();
 
 app.use(helmet());
 app.use(morgan('dev'));
-app.use(express.json({ limit: '15mb' }));
+const BODY_LIMIT = process.env.BODY_LIMIT || '500mb';
+app.use(express.json({ limit: BODY_LIMIT }));
 
 // CORS handling: allow configured origins (comma separated) or allow all
 if (CORS_ORIGINS.length === 1 && CORS_ORIGINS[0] === '*') {
@@ -55,8 +56,35 @@ app.use((err: any, _req: express.Request, res: express.Response, _next: express.
 
 // Connect to MongoDB and start server
 mongoose.connect(MONGODB_URI, { autoIndex: true })
-  .then(() => {
+  .then(async () => {
     console.log('Connected to MongoDB');
+    try {
+      const db = mongoose.connection.db;
+      if (db) {
+        try {
+          const cols = await db.listCollections().toArray();
+          console.log('MongoDB collections:', cols.map(c => c.name));
+          const hasFiles = cols.some(c => c.name === 'projectFiles.files');
+          const hasChunks = cols.some(c => c.name === 'projectFiles.chunks');
+          console.log('GridFS presence - files:', hasFiles, 'chunks:', hasChunks);
+          if (hasFiles) {
+            try {
+              const filesColl = db.collection('projectFiles.files');
+              const count = await filesColl.countDocuments();
+              console.log('projectFiles.files count:', count);
+            } catch (countErr) {
+              console.warn('Failed to count projectFiles.files', countErr);
+            }
+          }
+        } catch (listErr) {
+          console.warn('Failed to list MongoDB collections', listErr);
+        }
+      } else {
+        console.warn('mongoose.connection.db is null/undefined');
+      }
+    } catch (e) {
+      console.warn('Error inspecting MongoDB after connect', e);
+    }
     app.listen(PORT, () => console.log(`Server listening on http://localhost:${PORT}`));
   })
   .catch(err => {

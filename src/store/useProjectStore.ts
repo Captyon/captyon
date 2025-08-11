@@ -229,17 +229,83 @@ async function loadFirstProjectIfMissing() {
 
 async function loadProjectById(id: string): Promise<Project | null> {
   if (!id) return null;
-  try {
-    const proj = await getProjectAny(id);
-    if (proj) {
-      state.projects.set(proj.id, proj);
-      state.currentId = proj.id;
-      state.currentIndex = proj.cursor || 0;
+
+  // If configured for MongoDB, query the server directly so we can detect
+  // network/HTTP errors and let the UI decide how to react (retry, notify).
+  if (state.settings.storage === 'mongodb' && state.settings.mongoApiUrl) {
+    try {
+      const proj = await mongoDb.getProject(id, { baseUrl: state.settings.mongoApiUrl, apiKey: state.settings.mongoApiKey || null });
+      if (proj) {
+        // If the server stored images in GridFS the project items may have imgId references
+        // instead of an inline data URL. Hydrate those images by fetching them from the server
+        // and converting to data URLs so the UI keeps working unchanged.
+        if (Array.isArray(proj.items) && state.settings.mongoApiUrl) {
+          const base = state.settings.mongoApiUrl.replace(/\/+$/, '');
+          const headers: Record<string, string> = {};
+          if (state.settings.mongoApiKey) {
+            headers['Authorization'] = `Bearer ${state.settings.mongoApiKey}`;
+            headers['x-api-key'] = state.settings.mongoApiKey;
+          }
+
+          await Promise.all(proj.items.map(async (it: any) => {
+            if ((!it.img || it.img === '') && it.imgId) {
+              try {
+                const url = `${base}/projects/files/${encodeURIComponent(it.imgId)}`;
+                const res = await fetch(url, { method: 'GET', headers });
+                if (!res.ok) {
+                  console.warn('Failed to fetch GridFS image', it.imgId, res.status);
+                  return;
+                }
+                const blob = await res.blob();
+                // convert blob to data URL
+                const dataUrl = await new Promise<string>((resolve, reject) => {
+                  const reader = new FileReader();
+                  reader.onload = () => resolve(reader.result as string);
+                  reader.onerror = () => reject(new Error('Failed to read blob as data URL'));
+                  reader.readAsDataURL(blob);
+                });
+                it.img = dataUrl;
+              } catch (e) {
+                console.error('Error hydrating image from server', e);
+              }
+            }
+          }));
+        }
+
+        state.projects.set(proj.id, proj);
+        state.currentId = proj.id;
+        state.currentIndex = proj.cursor || 0;
+        return proj;
+      }
+      // Not found on server — fall back to local cache if available
+      const local = await idb.getProject(id);
+      if (local) {
+        state.projects.set(local.id, local);
+        state.currentId = local.id;
+        state.currentIndex = local.cursor || 0;
+        return local;
+      }
+      return null;
+    } catch (e) {
+      // Surface the error to the caller (UI) so it can show a retryable message
+      console.error('loadProjectById (mongo) failed', e);
+      throw e;
     }
-    return proj;
-  } catch (e) {
-    console.error('loadProjectById failed', e);
-    return null;
+  } else {
+    // Browser storage (IndexedDB)
+    try {
+      const proj = await idb.getProject(id);
+      if (proj) {
+        state.projects.set(proj.id, proj);
+        state.currentId = proj.id;
+        state.currentIndex = proj.cursor || 0;
+        return proj;
+      }
+      return null;
+    } catch (e) {
+      console.error('loadProjectById (idb) failed', e);
+      throw e;
+    }
   }
 }
 

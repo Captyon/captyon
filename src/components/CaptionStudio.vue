@@ -10,6 +10,11 @@ const filesInput = ref<HTMLInputElement | null>(null);
 const folderInput = ref<HTMLInputElement | null>(null);
 const jsonInput = ref<HTMLInputElement | null>(null);
 const searchBox = ref<HTMLInputElement | null>(null);
+const selectedId = ref<string | null>(state.currentId);
+// keep the local select in sync when the store's currentId changes
+watch(() => state.currentId, (v) => {
+  selectedId.value = v;
+});
 
 const captionBox = ref('');
 const tagInput = ref('');
@@ -82,20 +87,53 @@ function welcomeOpenSettings() {
   closeWelcome();
 }
 
-function onNewProject() {
+async function onNewProject() {
   const name = prompt('Project name?') || 'Untitled';
-  store.createProject(name);
-  store.refreshMetaBar().catch(console.error);
+  // create the project in-memory and persist it before refreshing the meta list
+  const p = store.createProject(name);
+  try {
+    // ensure the newly created project is saved to storage so refreshMetaBar can see it
+    await (store.saveCurrentProject?.());
+  } catch (e) {
+    console.error('Failed to save new project', e);
+  }
+  try {
+    await store.refreshMetaBar();
+  } catch (e) {
+    console.error(e);
+  }
 }
 
 function onProjectChange(e: Event) {
   const val = (e.target as HTMLSelectElement).value;
   if (!val) return;
+
+  // Keep previous selection so we can revert if loading fails
+  const prevId = state.currentId;
+
+  // Ensure meta is fresh, then attempt to load the full project via the store
   store.refreshMetaBar().then(async () => {
-    const { getProject } = await import('../services/db');
-    const proj = await getProject(val);
-    if (proj) store.setCurrentProject(proj);
-  }).catch(console.error);
+    try {
+      const proj = await store.loadProjectById(val);
+      if (proj) {
+        // load succeeded — make it current
+        store.setCurrentProject(proj);
+      } else {
+        // load failed or not found — revert selection and notify user
+        state.currentId = prevId;
+        store.addToast('Failed to load project; reverted selection', 'warn');
+        console.warn('onProjectChange: project not found after loadProjectById', val);
+      }
+    } catch (err) {
+      console.error('onProjectChange loadProjectById failed', err);
+      state.currentId = prevId;
+      store.addToast('Failed to load project; reverted selection', 'warn');
+    }
+  }).catch(err => {
+    console.error('onProjectChange refreshMetaBar failed', err);
+    state.currentId = prevId;
+    store.addToast('Failed to refresh project list; reverted selection', 'warn');
+  });
 }
 
 async function pickFiles() {
@@ -506,8 +544,6 @@ onMounted(async () => {
       store.ingestFiles(dt.files);
     }
   });
-
-  // keyboard shortcuts were previously registered inside onMounted.
 });
  
 const deleteDontAsk = ref(false);
@@ -653,7 +689,7 @@ onUnmounted(() => {
         </div>
       <div class="toolbar">
         <div style="position:relative; display:inline-flex; align-items:center;">
-<select id="projectSelect" ref="projectSelect" v-model="state.currentId" @change="onProjectChange" :disabled="state.order.length === 0">
+<select id="projectSelect" ref="projectSelect" v-model="selectedId" @change="onProjectChange" :disabled="state.order.length === 0">
             <option v-if="state.order.length === 0" disabled value="">{{ state.showWelcomeModal ? 'No project — use the Welcome screen' : 'No projects' }}</option>
             <option v-for="id in state.order" :key="id" :value="id">{{ state.projects.get(id)?.name || id }}</option>
           </select>

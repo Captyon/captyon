@@ -7,6 +7,7 @@ export type Item = {
   caption?: string;
   originalCaption?: string;
   img?: string;
+  imgId?: string;
   tags?: string[];
   selected?: boolean;
   width?: number;
@@ -30,6 +31,7 @@ const ItemSchema = new Schema<Item>(
     caption: String,
     originalCaption: String,
     img: String,
+    imgId: String,
     tags: [String],
     selected: Boolean,
     width: Number,

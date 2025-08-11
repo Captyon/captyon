@@ -85,23 +85,16 @@ export async function getAllMeta(): Promise<Array<{ id: string; name: string; co
   const db = await openDB();
   return new Promise((resolve, reject) => {
     const tx = db.transaction(STORE, 'readonly');
-    const req = tx.objectStore(STORE).getAllKeys();
-    req.onsuccess = async () => {
-      const keys = (req.result || []) as string[];
-      const meta: Array<{ id: string; name: string; count: number; updatedAt: number }> = [];
-      try {
-        for (const id of keys) {
-          const r2 = await new Promise<Project | null>((res, rej) => {
-            const r = tx.objectStore(STORE).get(id);
-            r.onsuccess = () => res(r.result || null);
-            r.onerror = () => rej(r.error);
-          });
-          if (r2) meta.push({ id: r2.id, name: r2.name, count: r2.items.length, updatedAt: r2.updatedAt });
-        }
-        resolve(meta);
-      } catch (err) {
-        reject(err);
-      }
+    const req = tx.objectStore(STORE).getAll();
+    req.onsuccess = () => {
+      const all = req.result || [];
+      const meta: Array<{ id: string; name: string; count: number; updatedAt: number }> = all.map((r: any) => ({
+        id: r.id,
+        name: r.name,
+        count: (r.items || []).length,
+        updatedAt: r.updatedAt || 0
+      }));
+      resolve(meta);
     };
     req.onerror = () => reject(req.error);
   });

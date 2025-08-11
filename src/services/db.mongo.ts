@@ -21,7 +21,14 @@ function headers(apiKey?: string | null) {
 }
 
 async function doJson(url: string, init: RequestInit) {
+  // Force fresh responses to avoid 304 Not Modified surprises from caches
+  init = { ...(init || {}), cache: (init && (init as any).cache) || 'no-cache' };
+
   const res = await fetch(url, init);
+
+  // Treat 204 and 304 as "no content but successful"
+  if (res.status === 204 || res.status === 304) return null;
+
   if (!res.ok) {
     // If the server returned JSON error, try to include it in message
     let errText = res.statusText || String(res.status);
@@ -34,8 +41,7 @@ async function doJson(url: string, init: RequestInit) {
     (err as any).status = res.status;
     throw err;
   }
-  // If no content
-  if (res.status === 204) return null;
+
   const text = await res.text();
   if (!text) return null;
   try {
@@ -77,7 +83,12 @@ export async function deleteProject(id: string, opts: Opts = {}): Promise<void> 
 export async function getAllMeta(opts: Opts = {}): Promise<Array<{ id: string; name: string; count: number; updatedAt: number }>> {
   const base = baseUrlOrThrow(opts.baseUrl);
   const url = `${base}/projects/meta`;
-  const json = await doJson(url, { method: 'GET', headers: headers(opts.apiKey || null) });
+  let json = await doJson(url, { method: 'GET', headers: headers(opts.apiKey || null) });
+  // Retry once with cache-buster if server returned no content (304 -> null)
+  if (json === null) {
+    const retryUrl = `${url}?_=${Date.now()}`;
+    json = await doJson(retryUrl, { method: 'GET', headers: headers(opts.apiKey || null) });
+  }
   return (json as any) || [];
 }
 
