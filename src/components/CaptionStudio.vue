@@ -237,8 +237,24 @@ function rotate() {
   state.rotation = (state.rotation + 90) % 360;
 }
 
-function exportProject() {
-  store.exportProject();
+const exportOpen = ref(false);
+function exportProjectJson() {
+  try {
+    store.exportProject();
+  } catch (e) {
+    console.error('exportProjectJson failed', e);
+  } finally {
+    exportOpen.value = false;
+  }
+}
+function exportProjectZip() {
+  try {
+    (store as any).exportProjectZip?.();
+  } catch (e) {
+    console.error('exportProjectZip failed', e);
+  } finally {
+    exportOpen.value = false;
+  }
 }
 
 function saveProject() {
@@ -719,7 +735,13 @@ onUnmounted(() => {
         <div class="spacer"></div>
         <input type="search" ref="searchBox" id="searchBox" v-model="state.filter.text" placeholder="Search captions or file names" style="width: 280px" />
         <button class="btn" id="saveBtn" @click="saveProject"><i class="icon">💾</i> Save</button>
-        <button class="btn" id="exportBtn" @click="exportProject"><i class="icon">⬇</i> Export JSON</button>
+        <div style="position:relative; display:inline-block;">
+          <button class="btn" id="exportBtn" @click="exportOpen = !exportOpen"><i class="icon">⬇</i> Export</button>
+          <div v-if="exportOpen" style="position:absolute; right:0; top:40px; background:var(--panel-bg,#0f1720); padding:8px; border-radius:8px; box-shadow:0 6px 18px rgba(0,0,0,0.6); z-index:1200; display:flex; gap:8px; white-space:nowrap">
+            <button class="btn" @click="exportProjectJson">JSON</button>
+            <button class="btn" @click="exportProjectZip">Zip (images + txt)</button>
+          </div>
+        </div>
         <button class="btn primary" id="autoBtn" @click="store.autoCaptionBulk"><i class="icon">✨</i> Auto Caption</button>
         <button class="btn" id="projectSettingsBtn" @click="openProjectSettings"><i class="icon">🧰</i> Project Settings</button>
         <button class="btn" id="settingsBtn" @click="openSettings"><i class="icon">⚙</i> Settings</button>

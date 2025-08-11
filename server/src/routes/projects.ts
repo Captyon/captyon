@@ -59,8 +59,9 @@ router.get('/:id', async (req: Request, res: Response) => {
               });
               const fileBuf = Buffer.concat(chunks);
 
-              // Generate a thumbnail (keep width reasonable for UI)
-              const thumbBuf = await sharp(fileBuf).resize({ width: 600, withoutEnlargement: true }).toBuffer();
+              // Preserve original image (do not downscale)
+              // Use the original buffer so the client receives the full-size image.
+              const thumbBuf = fileBuf;
 
               // Try to read contentType from files collection; prefer metadata.contentType, fall back to top-level contentType, then to image/png
               const fileDoc = await filesColl.findOne({ _id: oid });
@@ -145,14 +146,12 @@ router.put('/:id', async (req: Request, res: Response) => {
                     try {
                       const gridContentType = match ? match[1] : 'application/octet-stream';
                       const uploadStream = bucket.openUploadStream(filename, { contentType: gridContentType, metadata: { contentType: gridContentType } });
-                      console.log('GridFS: starting upload for', filename);
                       await new Promise<void>((resolve, reject) => {
                         uploadStream.on('error', (err) => {
                           console.error('GridFS upload stream error for', filename, err);
                           reject(err);
                         });
                         uploadStream.on('finish', () => {
-                          console.log('GridFS: upload finished for', filename, 'id=', uploadStream.id);
                           resolve();
                         });
                         uploadStream.end(buffer);
@@ -164,12 +163,9 @@ router.put('/:id', async (req: Request, res: Response) => {
                     try {
                       const filesColl = db.collection('projectFiles.files');
                       const fileDoc = await filesColl.findOne({ _id: uploadStream.id });
-                      console.log('GridFS: verification result for', filename, { found: !!fileDoc, fileDoc: fileDoc ? { _id: fileDoc._id, filename: fileDoc.filename, length: fileDoc.length } : null });
                       if (!fileDoc) {
-                        console.warn('GridFS: upload completed but no filesColl entry found for id', uploadStream.id);
                       }
                     } catch (verifyErr) {
-                      console.warn('GridFS: verification query failed', verifyErr);
                     }
 
                     // Full image stored in GridFS; remove inline image from payload. GET will re-hydrate thumbnails.

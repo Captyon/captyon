@@ -513,6 +513,151 @@ function exportProject() {
   URL.revokeObjectURL(a.href);
 }
 
+/**
+ * Export project as a ZIP containing numbered image + text pairs.
+ * Filenames start at 0001 and are zero-padded to at least 4 digits (or larger if needed).
+ * Uses dynamic import of fflate for efficient zipping.
+ */
+async function exportProjectZip() {
+  const proj = getCurrentProject();
+  if (!proj) {
+    addToast('No project', 'warn');
+    return;
+  }
+
+  try {
+    state.status = 'Preparing export';
+    const items = proj.items || [];
+    if (items.length === 0) {
+      addToast('No items to export', 'warn');
+      state.status = 'Idle';
+      return;
+    }
+
+    // Use JSZip (dynamic import) to build the archive. This avoids the recursion issue observed with fflate
+    // and provides a simple progress hook via generateAsync's onUpdate callback.
+    const JSZipModule = await import('jszip');
+    const JSZip = (JSZipModule && (JSZipModule as any).default) || JSZipModule;
+    const zipObj = new JSZip();
+
+    const count = items.length;
+    const pad = Math.max(4, String(count).length);
+    const padded = (i: number) => String(i + 1).padStart(pad, '0');
+
+    // helper: convert dataURL to Uint8Array
+    const dataUrlToU8 = (dataUrl: string) => {
+      const comma = dataUrl.indexOf(',');
+      const meta = dataUrl.slice(0, comma);
+      const b64 = dataUrl.slice(comma + 1);
+      const binStr = atob(b64);
+      const len = binStr.length;
+      const u8 = new Uint8Array(len);
+      for (let i = 0; i < len; i++) u8[i] = binStr.charCodeAt(i);
+      const mimeMatch = meta.match(/data:([^;]+);/);
+      const mime = mimeMatch ? mimeMatch[1] : '';
+      return { u8, mime };
+    };
+
+    state.progress.cur = 0;
+    // We'll use a 0-100 progress scale for generation phase
+    state.progress.total = 100;
+
+    const manifest: Record<string, { original: string; name: string }> = {};
+    let skipped = 0;
+
+    // Add files to JSZip instance one at a time
+    for (let i = 0; i < items.length; i++) {
+      const it = items[i];
+      const idx = padded(i);
+
+      if (!it.img) {
+        skipped++;
+        // Map file processing progress to 0-30% range
+        state.progress.cur = Math.floor(((i + 1) / items.length) * 30);
+        continue;
+      }
+
+      // determine extension from original filename or mime
+      let ext = 'jpg';
+      const m = (it.filename || '').match(/\.([^.]+)$/);
+      if (m && m[1]) ext = m[1].toLowerCase();
+      if (!m) {
+        try {
+          const mimeTry = it.img.slice(5, it.img.indexOf(';'));
+          if (mimeTry) {
+            if (mimeTry === 'image/jpeg') ext = 'jpg';
+            else if (mimeTry === 'image/png') ext = 'png';
+            else if (mimeTry === 'image/webp') ext = 'webp';
+            else if (mimeTry === 'image/gif') ext = 'gif';
+            else if (mimeTry === 'image/bmp') ext = 'bmp';
+            else {
+              const parts = mimeTry.split('/');
+              if (parts[1]) ext = parts[1];
+            }
+          }
+        } catch {}
+      }
+
+      const imgName = `${idx}.${ext}`;
+      const txtName = `${idx}.txt`;
+
+      try {
+        const { u8 } = dataUrlToU8(it.img);
+        // JSZip accepts Uint8Array directly for binary content
+        zipObj.file(imgName, u8);
+      } catch (e) {
+        console.error('Failed to convert image to binary for', it.filename, e);
+        skipped++;
+        state.progress.cur = Math.floor(((i + 1) / items.length) * 30);
+        continue;
+      }
+
+      // caption as UTF-8 text
+      zipObj.file(txtName, it.caption || '');
+
+      manifest[imgName] = { original: it.filename || '', name: imgName };
+
+      // update processing progress mapped to 0-30%
+      state.progress.cur = Math.floor(((i + 1) / items.length) * 30);
+    }
+
+    // include manifest.json for mapping back to original filenames
+    zipObj.file('manifest.json', JSON.stringify({
+      projectName: proj.name,
+      count: items.length,
+      skipped,
+      mapping: manifest
+    }, null, 2));
+
+    state.status = 'Generating zip';
+
+    // Generate blob with progress callback; map generation percent (0-100) to 30-100 overall progress
+    const blob = await zipObj.generateAsync(
+      { type: 'blob', compression: 'DEFLATE' },
+      (metadata: any) => {
+        // metadata.percent is 0-100 for generation stage
+        const genPercent = Math.round(metadata.percent || 0);
+        // Map generation to 30-100 range
+        state.progress.cur = Math.min(100, Math.floor(30 + (genPercent * 0.7)));
+      }
+    );
+
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = slug(proj.name) + '.zip';
+    a.click();
+    URL.revokeObjectURL(a.href);
+
+    addToast(`Export complete${skipped ? ` • skipped ${skipped} item(s)` : ''}`, 'ok');
+  } catch (err) {
+    console.error('exportProjectZip failed', err);
+    addToast('Export failed', 'warn');
+  } finally {
+    state.status = 'Idle';
+    state.progress = { cur: 0, total: 0 };
+  }
+}
+
 function importProjectFromJSON(obj: any) {
   if (obj && obj.schema === 'caption-studio-v1' && obj.project) {
     const p: Project = obj.project;
@@ -910,6 +1055,7 @@ export function useProjectStore() {
     ingestFiles,
     saveCurrentProject,
     exportProject,
+    exportProjectZip,
     importProjectFromJSON,
     applyEdits,
     copyFromFile,
