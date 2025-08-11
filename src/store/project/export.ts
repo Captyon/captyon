@@ -1,0 +1,168 @@
+import { state } from './state';
+import { addToast } from './toasts';
+import { slug } from '../../utils/file';
+
+/**
+ * Project export / import helpers
+ */
+export function exportProject() {
+  const proj = state.currentId ? state.projects.get(state.currentId) : null;
+  if (!proj) {
+    addToast('No project', 'warn');
+    return;
+  }
+  const data = { schema: 'caption-studio-v1', project: proj };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = slug(proj.name) + '.json';
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+/**
+ * Export project as a ZIP containing numbered image + text pairs.
+ */
+export async function exportProjectZip() {
+  const proj = state.currentId ? state.projects.get(state.currentId) : null;
+  if (!proj) {
+    addToast('No project', 'warn');
+    return;
+  }
+
+  try {
+    state.status = 'Preparing export';
+    const items = proj.items || [];
+    if (items.length === 0) {
+      addToast('No items to export', 'warn');
+      state.status = 'Idle';
+      return;
+    }
+
+    // Use JSZip (dynamic import)
+    const JSZipModule = await import('jszip');
+    const JSZip = (JSZipModule && (JSZipModule as any).default) || JSZipModule;
+    const zipObj = new JSZip();
+
+    const count = items.length;
+    const pad = Math.max(4, String(count).length);
+    const padded = (i: number) => String(i + 1).padStart(pad, '0');
+
+    const dataUrlToU8 = (dataUrl: string) => {
+      const comma = dataUrl.indexOf(',');
+      const meta = dataUrl.slice(0, comma);
+      const b64 = dataUrl.slice(comma + 1);
+      const binStr = atob(b64);
+      const len = binStr.length;
+      const u8 = new Uint8Array(len);
+      for (let i = 0; i < len; i++) u8[i] = binStr.charCodeAt(i);
+      const mimeMatch = meta.match(/data:([^;]+);/);
+      const mime = mimeMatch ? mimeMatch[1] : '';
+      return { u8, mime };
+    };
+
+    state.progress.cur = 0;
+    state.progress.total = 100;
+
+    const manifest: Record<string, { original: string; name: string }> = {};
+    let skipped = 0;
+
+    for (let i = 0; i < items.length; i++) {
+      const it = items[i];
+      const idx = padded(i);
+
+      if (!it.img) {
+        skipped++;
+        state.progress.cur = Math.floor(((i + 1) / items.length) * 30);
+        continue;
+      }
+
+      let ext = 'jpg';
+      const m = (it.filename || '').match(/\.([^.]+)$/);
+      if (m && m[1]) ext = m[1].toLowerCase();
+      if (!m) {
+        try {
+          const mimeTry = it.img.slice(5, it.img.indexOf(';'));
+          if (mimeTry) {
+            if (mimeTry === 'image/jpeg') ext = 'jpg';
+            else if (mimeTry === 'image/png') ext = 'png';
+            else if (mimeTry === 'image/webp') ext = 'webp';
+            else if (mimeTry === 'image/gif') ext = 'gif';
+            else if (mimeTry === 'image/bmp') ext = 'bmp';
+            else {
+              const parts = mimeTry.split('/');
+              if (parts[1]) ext = parts[1];
+            }
+          }
+        } catch {}
+      }
+
+      const imgName = `${idx}.${ext}`;
+      const txtName = `${idx}.txt`;
+
+      try {
+        const { u8 } = dataUrlToU8(it.img);
+        zipObj.file(imgName, u8);
+      } catch (e) {
+        console.error('Failed to convert image to binary for', it.filename, e);
+        skipped++;
+        state.progress.cur = Math.floor(((i + 1) / items.length) * 30);
+        continue;
+      }
+
+      zipObj.file(txtName, it.caption || '');
+
+      manifest[imgName] = { original: it.filename || '', name: imgName };
+
+      state.progress.cur = Math.floor(((i + 1) / items.length) * 30);
+    }
+
+    zipObj.file('manifest.json', JSON.stringify({
+      projectName: proj.name,
+      count: items.length,
+      skipped,
+      mapping: manifest
+    }, null, 2));
+
+    state.status = 'Generating zip';
+
+    const blob = await zipObj.generateAsync(
+      { type: 'blob', compression: 'DEFLATE' },
+      (metadata: any) => {
+        const genPercent = Math.round(metadata.percent || 0);
+        state.progress.cur = Math.min(100, Math.floor(30 + (genPercent * 0.7)));
+      }
+    );
+
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = slug(proj.name) + '.zip';
+    a.click();
+    URL.revokeObjectURL(a.href);
+
+    addToast(`Export complete${skipped ? ` • skipped ${skipped} item(s)` : ''}`, 'ok');
+  } catch (err) {
+    console.error('exportProjectZip failed', err);
+    addToast('Export failed', 'warn');
+  } finally {
+    state.status = 'Idle';
+    state.progress = { cur: 0, total: 0 };
+  }
+}
+
+export function importProjectFromJSON(obj: any) {
+  if (obj && obj.schema === 'caption-studio-v1' && obj.project) {
+    const p: any = obj.project;
+    p.updatedAt = Date.now();
+    state.projects.set(p.id, p);
+    if (!state.order.includes(p.id)) state.order.push(p.id);
+    state.currentId = p.id;
+    state.currentIndex = p.cursor || 0;
+    addToast('Project imported', 'ok');
+    // refreshMetaBar will be handled by facade caller or settings init if needed
+    return true;
+  } else {
+    addToast('Invalid JSON schema', 'warn');
+    return false;
+  }
+}
