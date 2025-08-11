@@ -17,6 +17,7 @@ export type State = {
   rotation: number;
   filter: { text: string; onlyMissing: boolean; onlySelected: boolean };
   settings: Settings;
+  manualDimPercent?: number;
   selection: Set<string>;
   status: string;
   progress: Progress;
@@ -54,8 +55,15 @@ export const state = reactive<State>({
     autoSyncOnStart: false,
     storage: 'browser',
     mongoApiUrl: '',
-    mongoApiKey: ''
+    mongoApiKey: '',
+
+    // Image dimming defaults
+    autoDimEnabled: true,
+    autoDimThreshold: 165,
+    defaultDimPercent: 60
   },
+  // Manual dim percent (100 = no manual dim). Users can adjust this from the Viewer.
+  manualDimPercent: 100,
   selection: new Set(),
   status: 'Idle',
   progress: { cur: 0, total: 0 },

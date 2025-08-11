@@ -364,3 +364,49 @@ export async function extractSdPrompt(file: File): Promise<string | null> {
     return null;
   }
 }
+
+/**
+ * Compute average brightness of an image (0-255) from a data URL.
+ * Uses an offscreen canvas and downsamples the image for performance.
+ */
+export function computeAvgBrightness(dataUrl: string): Promise<number> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = 'Anonymous';
+    img.onload = () => {
+      try {
+        // Downscale target for faster processing while keeping accuracy
+        const targetW = 64;
+        const targetH = 64;
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return reject(new Error('Canvas not available'));
+
+        // Preserve aspect ratio
+        const ratio = Math.min(targetW / img.naturalWidth, targetH / img.naturalHeight, 1);
+        const w = Math.max(1, Math.round(img.naturalWidth * ratio));
+        const h = Math.max(1, Math.round(img.naturalHeight * ratio));
+        canvas.width = w;
+        canvas.height = h;
+        ctx.drawImage(img, 0, 0, w, h);
+        const data = ctx.getImageData(0, 0, w, h).data;
+        let sum = 0;
+        const pxCount = w * h;
+        for (let i = 0; i < data.length; i += 4) {
+          const r = data[i];
+          const g = data[i + 1];
+          const b = data[i + 2];
+          // Perceptual luminance (Rec. 601)
+          const lum = 0.299 * r + 0.587 * g + 0.114 * b;
+          sum += lum;
+        }
+        const avg = Math.round(sum / pxCount);
+        resolve(avg);
+      } catch (e) {
+        reject(e);
+      }
+    };
+    img.onerror = () => reject(new Error('Failed to load image for brightness computation'));
+    img.src = dataUrl;
+  });
+}

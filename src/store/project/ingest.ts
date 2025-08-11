@@ -10,7 +10,8 @@ import {
   isVideo,
   mediaTypeOf,
   base as fileBase,
-  extractSdPrompt
+  extractSdPrompt,
+  computeAvgBrightness
 } from '../../utils/file';
 
 /* ----------------- File ingestion ----------------- */
@@ -96,6 +97,10 @@ export async function ingestFiles(fileList: FileList | File[]) {
           const d = await imgDims(dataUrl);
           item.width = d.w;
           item.height = d.h;
+        } catch {}
+        try {
+          // Compute and store average brightness (0-255) for automatic dim detection
+          item.avgBrightness = await computeAvgBrightness(dataUrl);
         } catch {}
       }
 

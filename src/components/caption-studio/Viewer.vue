@@ -9,11 +9,19 @@
         <button class="btn small" id="fitBtn" @click="fit">Fit</button>
         <button class="btn small" id="fillBtn" @click="fill">Fill</button>
         <button class="btn small" id="rotateBtn" @click="rotate">Rotate 90°</button>
+
+        <!-- Manual dim control -->
+        <label for="manualDim" style="display:flex;align-items:center;gap:6px;margin-left:8px">
+          Dim
+          <input id="manualDim" type="range" min="10" max="100" v-model.number="state.manualDimPercent" style="width:120px" />
+          <span style="min-width:36px;text-align:right">{{ state.manualDimPercent }}%</span>
+        </label>
       </div>
     </div>
 
     <div class="viewport" id="viewport">
-      <div class="canvas-wrap">
+      <div class="canvas-wrap" style="position:relative">
+        <div v-if="dimInfo?.source === 'auto'" style="position:absolute; top:8px; right:8px; background:rgba(0,0,0,0.55); color:#fff; padding:4px 8px; border-radius:4px; font-size:12px; pointer-events:none; z-index:10">Dimmed (auto)</div>
         <CurationCard v-if="state.curationMode" />
         <template v-else>
           <template v-if="currentItem?.mediaType === 'video'">
@@ -72,7 +80,40 @@ function fit() { state.zoom = 100; }
 function fill() { state.zoom = 150; }
 function rotate() { state.rotation = (state.rotation + 90) % 360; }
 
+const dimInfo = computed(() => {
+  // Returns { dimPercent?: number, source: 'manual' | 'auto' | null }
+  if (currentItem.value?.mediaType !== 'image') return { dimPercent: undefined, source: null };
+  let dimPercent: number | undefined;
+  let source: 'manual' | 'auto' | null = null;
+
+  // Manual override (if user adjusted the manual dim slider)
+  if (typeof state.manualDimPercent === 'number' && state.manualDimPercent > 0 && state.manualDimPercent < 100) {
+    dimPercent = state.manualDimPercent;
+    source = 'manual';
+  } else if (state.settings?.autoDimEnabled) {
+    // Automatic dimming based on measured average brightness (0-255)
+    const avg = currentItem.value?.avgBrightness;
+    if (typeof avg === 'number' && typeof state.settings?.autoDimThreshold === 'number' && avg >= state.settings.autoDimThreshold) {
+      dimPercent = state.settings.defaultDimPercent ?? 70;
+      source = 'auto';
+    }
+  }
+
+  return { dimPercent, source };
+});
+
 const mainMediaStyle = computed(() => {
-  return { transform: `scale(${state.zoom/100}) rotate(${state.rotation}deg)` } as Record<string, any>;
+  const styles: Record<string, any> = {
+    transform: `scale(${state.zoom/100}) rotate(${state.rotation}deg)`
+  };
+
+  const di = dimInfo.value;
+  if (typeof di?.dimPercent === 'number') {
+    // brightness() expects a multiplier (1 = 100%), so convert percent to multiplier
+    const mult = Math.max(0.01, Math.min(2, di.dimPercent / 100));
+    styles.filter = `brightness(${mult})`;
+  }
+
+  return styles;
 });
 </script>

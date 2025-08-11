@@ -33,6 +33,27 @@
         </div>
       </div>
 
+      <!-- Image dimming settings -->
+      <div style="margin-top:12px; padding:12px; border-radius:6px; background:var(--panel-bg, #0f1720);">
+        <h4 style="margin:0 0 8px 0">Image dimming</h4>
+        <div style="display:flex;gap:12px;align-items:center;margin-bottom:8px">
+          <label style="display:flex;align-items:center;gap:6px">
+            <input type="checkbox" v-model="state.settings.autoDimEnabled"> Automatically dim very bright images
+          </label>
+        </div>
+        <div style="display:flex;gap:8px;flex-direction:column">
+          <div class="field">
+            <label for="autoDimThreshold">Auto-dim threshold (0-255)</label>
+            <input id="autoDimThreshold" type="number" v-model.number="state.settings.autoDimThreshold" min="0" max="255">
+          </div>
+          <div class="field">
+            <label for="defaultDimPercent">Dim amount (%)</label>
+            <input id="defaultDimPercent" type="range" v-model.number="state.settings.defaultDimPercent" min="10" max="100">
+            <span>{{ state.settings.defaultDimPercent }}%</span>
+          </div>
+        </div>
+      </div>
+
       <!-- MongoDB storage settings -->
       <div style="margin-top:12px; padding:12px; border-radius:6px; background:var(--panel-bg, #0f1720);">
         <h4 style="margin:0 0 8px 0">Storage</h4>
@@ -94,5 +115,13 @@ function resetSettings() {
   state.settings.ollamaModel = 'llama3.2-vision';
   state.settings.promptTpl = 'Describe this image as a short, high quality caption. Focus on the main subject, action, style, lighting and mood. Keep it concise.';
   state.settings.stream = false;
+
+  // Reset image dimming settings to sensible defaults
+  state.settings.autoDimEnabled = true;
+  state.settings.autoDimThreshold = 230;
+  state.settings.defaultDimPercent = 70;
+
+  // Reset manual dim UI state
+  (state as any).manualDimPercent = 100;
 }
 </script>

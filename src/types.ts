@@ -9,6 +9,8 @@ export type Item = {
   selected: boolean;
   width: number;
   height: number;
+  // Average brightness measured on import (0-255). Higher = brighter.
+  avgBrightness?: number;
   // Optional media metadata for video files
   mediaType?: 'image' | 'video' | string;
   size?: number; // bytes
@@ -44,6 +46,13 @@ export type Settings = {
   mongoApiUrl?: string;
   // Optional API key / token to send in Authorization header (Bearer) or x-api-key
   mongoApiKey?: string;
+
+  // Image dimming settings
+  // When enabled, images whose average brightness exceeds `autoDimThreshold`
+  // will be dimmed to `defaultDimPercent` percent brightness.
+  autoDimEnabled?: boolean;
+  autoDimThreshold?: number; // 0-255 brightness threshold
+  defaultDimPercent?: number; // 10-100 percent (100 = no dim)
 };
 
 export type ToastKind = '' | 'ok' | 'warn' | 'danger';

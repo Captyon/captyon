@@ -39,6 +39,12 @@ export async function putProject(project: Project): Promise<void> {
           img: it.img,
           tags: Array.isArray(it.tags) ? it.tags.slice() : [],
           selected: !!it.selected,
+          // Persist measured average brightness so auto-dimming still works after reload
+          avgBrightness: (typeof it.avgBrightness === 'number') ? it.avgBrightness : undefined,
+          // Persist media metadata so mediaType/size are available after reload
+          mediaType: it.mediaType,
+          size: it.size || 0,
+          curationStatus: it.curationStatus,
           width: it.width || 0,
           height: it.height || 0
         }))

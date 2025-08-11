@@ -1,6 +1,7 @@
 import { state, newId } from './state';
 import { addToast } from './toasts';
 import { putProjectAny, getProjectAny, deleteProjectAny, getAllMetaAny } from './storage';
+import { computeAvgBrightness } from '../../utils/file';
 
 /* ----------------- Meta / Projects ----------------- */
 export async function refreshMetaBar() {
@@ -40,6 +41,33 @@ export function createProject(name = 'Untitled Project') {
   return p;
 }
 
+async function ensureAvgBrightnessForProject(proj: any) {
+  if (!proj || !Array.isArray(proj.items)) return;
+  let changed = false;
+  for (const it of proj.items) {
+    if (!it || typeof it.avgBrightness === 'number') continue;
+    // Detect images: explicit mediaType==='image' or a non-video data URL
+    const isImage = it.mediaType === 'image' || (it.img && !String(it.img).startsWith('data:video'));
+    if (!isImage || !it.img) continue;
+    try {
+      const avg = await computeAvgBrightness(it.img);
+      if (typeof avg === 'number') {
+        it.avgBrightness = avg;
+        changed = true;
+      }
+    } catch (e) {
+      // ignore compute errors for individual items
+    }
+  }
+  if (changed) {
+    try {
+      await putProjectAny(proj);
+    } catch (e) {
+      console.error('Failed to persist avgBrightness for project', e);
+    }
+  }
+}
+
 export async function loadFirstProjectIfMissing() {
   const meta = await getAllMetaAny();
   if (meta.length === 0) {
@@ -55,6 +83,7 @@ export async function loadFirstProjectIfMissing() {
   } else {
     const proj = await getProjectAny(meta[0].id);
     if (proj) {
+      await ensureAvgBrightnessForProject(proj);
       state.projects.set(proj.id, proj);
       state.currentId = proj.id;
       state.currentIndex = proj.cursor || 0;
@@ -75,7 +104,7 @@ export async function loadProjectById(id: string): Promise<any | null> {
         return await getProjectAny(id);
       })();
 
-      if (proj) {
+        if (proj) {
         // If the server stored images in GridFS the project items may have imgId references
         // instead of an inline data URL. Hydrate those images by fetching them from the server
         // and converting to data URLs so the UI keeps working unchanged.
@@ -112,6 +141,7 @@ export async function loadProjectById(id: string): Promise<any | null> {
           }));
         }
 
+        await ensureAvgBrightnessForProject(proj);
         state.projects.set(proj.id, proj);
         state.currentId = proj.id;
         state.currentIndex = proj.cursor || 0;
@@ -120,6 +150,7 @@ export async function loadProjectById(id: string): Promise<any | null> {
       // Not found on server — fall back to local cache if available
       const local = await getProjectAny(id);
       if (local) {
+        await ensureAvgBrightnessForProject(local);
         state.projects.set(local.id, local);
         state.currentId = local.id;
         state.currentIndex = local.cursor || 0;
@@ -136,6 +167,7 @@ export async function loadProjectById(id: string): Promise<any | null> {
     try {
       const proj = await getProjectAny(id);
       if (proj) {
+        await ensureAvgBrightnessForProject(proj);
         state.projects.set(proj.id, proj);
         state.currentId = proj.id;
         state.currentIndex = proj.cursor || 0;
