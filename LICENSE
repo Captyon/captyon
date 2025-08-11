@@ -1,48 +1,59 @@
-Caption Studio Non-Resale Attribution License (CS-NRA-1.0)
+Caption Studio Non-Resale Attribution License (CS-NRA-2.0)
 
 Copyright (c) 2025 github.com/rmcc3
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to use, copy, modify, merge, publish, distribute, and otherwise exploit the Software for any purpose, including commercial purposes, subject to the following conditions:
 
 1. Commercial Use
-   - Commercial use of the Software is permitted. You may incorporate the Software (original or modified) into commercial products or services and may use it to provide hosted (SaaS) services.
+   - Commercial use of the Software is permitted provided the Software is not offered in a manner that competes directly with the original project without substantial additional value.
+   - SaaS/hosted services based primarily on the Software must include substantial, independent features or services beyond operation of the Software itself.
+   - All commercial uses must comply with the Attribution and Non-Resale requirements in Sections 2 and 3.
 
 2. Attribution / Credit
-   - Redistributions of the Software, in source or binary form, or any Derivative Works based on the Software, must include:
-     a) A clear attribution to the original project (for example: "Includes code from Caption Studio (https://github.com/rmcc3/caption-studio)"),
-     b) A copy of this License or a link to it, and
-     c) Retention of the copyright notice in any source files where it appears.
-   - If the Software is used in a user-facing product or service (for example a web, desktop, or mobile app), reasonable and visible credit must be provided in the product's "About", "Credits", documentation, or similar location.
+   - Redistributions of the Software, in source or binary form, or any Derivative Works must include:
+     a) A clear attribution to the original project (“Includes code from Caption Studio (https://github.com/rmcc3/caption-studio)”), 
+     b) A copy of or link to this License, and
+     c) Retention of the copyright notice in all source files where it appears.
+   - User-facing products or services must display attribution in a prominent and reasonably visible manner on primary user interfaces (e.g., main UI footer, prominent “About” section reachable within one interaction).
 
 3. Non-Resale / Distribution for a Fee
-   - You MAY NOT sell, resell, sublicense for a fee, or otherwise distribute the Software or a Derivative Work as a standalone product whose primary value derives from the Software itself.
-   - You MAY include the Software in a larger work or product that is sold commercially, provided:
-     a) The Software is not offered for sale on its own or as the primary value of the offering, and
-     b) The attribution and license requirements in section 2 are followed.
-   - Offering the Software solely for direct monetary exchange (for example, charging an entry fee to download the unmodified Software or substantially similar versions) is prohibited.
+   - You MAY NOT sell, resell, sublicense for a fee, or otherwise distribute the Software or a Derivative Work as a standalone product or as the primary value of an offering.
+   - Determining “primary value”:
+     a) If more than 50% of the end-user’s perceived benefit is from the Software, it is considered primary.
+     b) Adding trivial features, services, or assets does not shift primary value away from the Software.
+   - Sale of installation, configuration, or hosting services is only allowed if bundled with substantial independent value-added services beyond deployment.
 
 4. Derivative Works
-   - "Derivative Work" means any work that is based upon or derived from the Software (in whole or in part), including modifications, translations, extensions, or works that combine the Software with other code.
-   - Derivative Works are subject to the same Attribution and Non-Resale requirements as the original Software.
+   - “Derivative Work” includes modifications, translations, extensions, packaging, containerization, or any work combining the Software with other code or services where the Software remains a core component.
+   - Derivative Works are subject to the same Attribution and Non-Resale requirements.
 
-5. No Trademark Grant
-   - This License does not grant any rights to use the trade names, trademarks, service marks, or product names of the Copyright Owner except as required for required attribution under section 2.
+5. No Trademark or Trade Dress Grant
+   - No rights are granted to use trade names, trademarks, logos, or distinctive visual styles of the Copyright Owner, except as required for attribution.
+   - You may not use similar branding likely to cause confusion, even if trademarks are not directly copied.
 
-6. Compliance and Enforcement
-   - If you are unsure whether a particular use qualifies as "resale" or is otherwise restricted by this License, contact the Copyright Owner for clarification and, if necessary, obtain a separate license.
+6. AI/ML Restrictions
+   - The Software and its outputs may not be used to train machine learning models for the purpose of creating substantially similar competing products without a separate commercial license.
 
-7. Disclaimer of Warranty
-   - THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE COPYRIGHT OWNER BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+7. Third-Party Components
+   - You must comply with license terms for all third-party dependencies included in or used with the Software.
 
-8. Limitation of Liability
-   - IN NO EVENT WILL THE COPYRIGHT OWNER BE LIABLE FOR ANY SPECIAL, INCIDENTAL, INDIRECT, OR CONSEQUENTIAL DAMAGES ARISING OUT OF THE USE OF OR INABILITY TO USE THE SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
+8. Compliance, Enforcement, and Termination
+   - Any violation of this License automatically terminates your rights under it.
+   - Upon termination, you must immediately cease use and distribution and destroy all copies within your control.
+   - The Copyright Owner reserves the right to audit use for compliance where legally permissible.
 
-9. Governing Law
-   - This License will be governed by and construed in accordance with the laws of the jurisdiction of the Copyright Owner, without regard to conflict of law principles.
+9. Disclaimer of Warranty
+   - THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED.
+
+10. Limitation of Liability
+    - IN NO EVENT WILL THE COPYRIGHT OWNER BE LIABLE FOR ANY DAMAGES ARISING OUT OF OR IN CONNECTION WITH THE SOFTWARE OR USE THEREOF.
+
+11. Governing Law and Global Applicability
+    - This License will be governed by the laws of the jurisdiction of the Copyright Owner.
+    - Users outside said jurisdiction agree to the applicability of these terms to the fullest extent allowed by local law.
 
 Definitions
-- "You" means the licensee who exercises rights under this License.
-- "Copyright Owner" means the person or entity that holds the copyright to the Software.
-- "Resell" and "sell" include distribution for direct monetary compensation, charging for download, or charging a license fee for the standalone Software or a Derivative Work where the Software is the primary item of value being sold.
-
-If you would like a version of this license that permits resale or different distribution terms, please contact the Copyright Owner to negotiate a separate commercial license.
+- "You": the licensee.
+- "Primary value": as defined in Section 3.
+- "Derivative Work": as defined in Section 4.
+- "Substantial independent features or services": significant and non-trivial capabilities unrelated to simple deployment.
