@@ -894,6 +894,12 @@ async function autoCaptionCurrent() {
     if (text) {
       it.caption = text;
       addToast('AI caption generated', 'ok');
+      // Auto-save after AI caption completes
+      try {
+        await saveCurrentProject();
+      } catch (e) {
+        console.error('Auto-save after AI caption failed', e);
+      }
     } else {
       addToast('Empty response from model', 'warn');
     }
@@ -926,6 +932,12 @@ async function autoCaptionBulk() {
       });
       if (text) {
         it.caption = text;
+        // Auto-save after each generated caption to persist progress
+        try {
+          await saveCurrentProject();
+        } catch (e) {
+          console.error('Auto-save during bulk caption failed', e);
+        }
       }
     } catch (e) {
       addToast('Failed on ' + it.filename, 'warn');
