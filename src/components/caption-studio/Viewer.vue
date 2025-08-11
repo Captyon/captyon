@@ -16,6 +16,13 @@
           <input id="manualDim" type="range" min="10" max="100" v-model.number="state.manualDimPercent" style="width:120px" />
           <span style="min-width:36px;text-align:right">{{ state.manualDimPercent }}%</span>
         </label>
+
+        <!-- Curation controls (moved to viewer bar when curation mode is active) -->
+        <div v-if="state.curationMode" style="margin-left:8px; display:flex; gap:8px; align-items:center">
+          <button class="btn" @click="() => commitCuration('rejected')">Reject</button>
+          <button class="btn primary" @click="() => commitCuration('accepted')">Accept</button>
+          <button class="btn" @click="openCurationExitConfirm">Exit</button>
+        </div>
       </div>
     </div>
 
@@ -65,6 +72,9 @@ import { computed, ref } from 'vue';
 import { useProjectStore } from '../../store/useProjectStore';
 import { useVideoMeta } from '../../composables/useVideoMeta';
 import CurationCard from './CurationCard.vue';
+import { useCuration } from '../../composables/useCuration';
+
+const { commitCuration, openCurationExitConfirm } = useCuration();
 
 const store = useProjectStore();
 const { state } = store;
@@ -82,7 +92,6 @@ const startPanX = ref(0);
 const startPanY = ref(0);
 
 function onPointerDown(e: PointerEvent) {
-  if (state.curationMode) return;
   // Only primary button for mouse; touch will have button === 0 as well
   if ((e as any).button !== undefined && (e as any).button !== 0) return;
   const el = e.currentTarget as HTMLElement | null;
@@ -96,7 +105,6 @@ function onPointerDown(e: PointerEvent) {
 }
 
 function onPointerMove(e: PointerEvent) {
-  if (state.curationMode) return;
   if (!isDragging.value) return;
   const dx = e.clientX - dragStartX.value;
   const dy = e.clientY - dragStartY.value;
@@ -106,7 +114,6 @@ function onPointerMove(e: PointerEvent) {
 }
 
 function onPointerUp(e: PointerEvent) {
-  if (state.curationMode) return;
   const el = e.currentTarget as HTMLElement | null;
   try { el?.releasePointerCapture(e.pointerId); } catch {}
   isDragging.value = false;

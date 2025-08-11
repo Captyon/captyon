@@ -37,9 +37,9 @@ function prev() { try { store.prev(); } catch (e) { console.error(e); } }
 function next() { try { store.next(); } catch (e) { console.error(e); } }
 function commitCuration(status: 'accepted' | 'rejected') {
   try {
-    const id = store.currentItem()?.id;
-    if (!id) return;
-    store.setCurationStatus(id, status);
+    // Use the composable's commitCuration so the accept/reject animation plays
+    // before the status is persisted.
+    useCuration().commitCuration(status);
   } catch (e) { console.error(e); }
 }
 function openCurationExitConfirm() {

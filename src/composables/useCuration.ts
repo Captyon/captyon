@@ -1,7 +1,10 @@
 import { ref, computed } from 'vue';
 import { useProjectStore } from '../store/useProjectStore';
 
+let _sharedCuration: any = null;
+
 export function useCuration() {
+  if (_sharedCuration) return _sharedCuration;
   const store = useProjectStore();
 
   // translation/rotation for the draggable curation card
@@ -79,18 +82,19 @@ export function useCuration() {
       curationTranslate.value = { x: status === 'accepted' ? 1000 : -1000, y: 0 };
     }
     curationRot.value = status === 'accepted' ? 18 : -18;
-    // persist status
-    try {
-      store.setCurationStatus(it.id, status);
-    } catch (e) {
-      // eslint-disable-next-line no-console
-      console.error('useCuration.commitCuration setCurationStatus error', e);
-    }
-    // after animation, reset for next card
+    // Wait for the animation to finish before persisting the curation status so the animation is visible.
     setTimeout(() => {
-      curationAnimating.value = false;
-      curationTranslate.value = { x: 0, y: 0 };
-      curationRot.value = 0;
+      try {
+        store.setCurationStatus(it.id, status);
+      } catch (e) {
+        // eslint-disable-next-line no-console
+        console.error('useCuration.commitCuration setCurationStatus error', e);
+      } finally {
+        // after persisting, reset for next card
+        curationAnimating.value = false;
+        curationTranslate.value = { x: 0, y: 0 };
+        curationRot.value = 0;
+      }
     }, 250);
   }
 
@@ -113,23 +117,16 @@ export function useCuration() {
     curationRot.value = Math.max(-25, Math.min(25, dx / 12));
   }
 
-  function curationPointerUp(e: PointerEvent) {
+function curationPointerUp(e: PointerEvent) {
     if (!curationDragging.value) return;
     try {
       (e.target as HTMLElement).releasePointerCapture?.(e.pointerId);
     } catch {}
     curationDragging.value = false;
-    const dx = curationTranslate.value.x;
-    if (dx > CURATION_THRESHOLD) {
-      commitCuration('accepted');
-    } else if (dx < -CURATION_THRESHOLD) {
-      commitCuration('rejected');
-    } else {
-      resetCurationCard(true);
-    }
+    resetCurationCard(true);
   }
 
-  return {
+  const api = {
     curationTranslate,
     curationRot,
     curationDragging,
@@ -148,4 +145,6 @@ export function useCuration() {
     curationPointerMove,
     curationPointerUp,
   };
+  _sharedCuration = api;
+  return api;
 }

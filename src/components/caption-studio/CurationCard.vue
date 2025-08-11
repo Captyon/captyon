@@ -18,10 +18,6 @@
         role="button"
         tabindex="0"
         :style="cardStyle"
-        @pointerdown="curationPointerDown"
-        @pointermove="curationPointerMove"
-        @pointerup="curationPointerUp"
-        @pointercancel="curationPointerUp"
       >
         <template v-if="currentItem?.mediaType === 'video'">
           <video :src="currentItem?.img || ''" muted autoplay loop playsinline preload="metadata" style="width:100%;height:100%;object-fit:contain; background:#000; object-position:center"></video>
@@ -35,11 +31,7 @@
         </div>
       </div>
 
-      <div style="display:flex;gap:12px;align-items:center;margin-top:14px">
-        <button class="btn" @click="() => commitCuration('rejected')">Reject</button>
-        <button class="btn primary" @click="() => commitCuration('accepted')">Accept</button>
-        <button class="btn" @click="() => openCurationExitConfirm()">Exit</button>
-      </div>
+      
     </div>
 
     <!-- Curation exit confirmation dialog (component-local) -->
@@ -92,7 +84,7 @@ const cardStyle = computed(() => {
   const ty = (curationTranslate as any).value?.y ?? 0;
   const rot = (curationRot as any).value ?? 0;
   const anim = (curationAnimating as any).value ?? false;
-  return {
+    return {
     width: '90%',
     maxWidth: '1100px',
     height: '90%',
@@ -100,8 +92,10 @@ const cardStyle = computed(() => {
     boxShadow: '0 10px 40px rgba(0,0,0,0.6)',
     overflow: 'hidden',
     touchAction: 'none',
-    transform: `translate(${tx}px, ${ty}px) rotate(${rot}deg)`,
-    transition: anim ? 'transform 180ms ease-out' : undefined,
+    // Apply global pan/zoom from viewer state so curation respects zooming.
+    // Order: global pan -> curation translate -> scale -> rotate
+    transform: `translate(${store.state.panX}px, ${store.state.panY}px) translate(${tx}px, ${ty}px) scale(${store.state.zoom/100}) rotate(${rot}deg)`,
+    transition: anim ? 'transform 250ms ease-out' : undefined,
     background: '#000',
   } as Record<string, any>;
 });
