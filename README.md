@@ -271,7 +271,7 @@ Please follow the existing TypeScript and Vue 3 patterns. The repo uses `vue-tsc
 
 ## License & acknowledgements
 
-- Caption Studio Non-Resale Attribution License (see `LICENSE`): Commercial use is permitted, but redistribution of the software (or derivative works whose primary value is the Software) for direct monetary compensation or as a standalone paid product is prohibited. Redistributions and derivative works must include clear attribution to the project (for example: "Includes code from Caption Studio (https://github.com/rmcc3/caption-studio)"), retain copyright notices, and include or link to the `LICENSE` file.
+- Caption Studio Non-Resale Attribution License (see `LICENSE` file.)
 - Thanks to the open-source ecosystem: Vue, Vite, Express, MongoDB, Sharp, and others.
 
 ---
