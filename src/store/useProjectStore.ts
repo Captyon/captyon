@@ -756,7 +756,7 @@ async function deleteProject(id: string) {
   }
 
   // Clear any prompt candidates referencing deleted items
-  state.promptCandidates = state.promptCandidates.filter((c: any) => {
+  state.promptCandidates = state.promptCandidates.filter(() => {
     // keep candidates whose project still exists — in this app candidates are tied to items in projects,
     // so simplest approach is to drop any that referenced the deleted project's items (we removed the project)
     return true; // nothing to check reliably here; promptCandidates hold itemId only and items are stored per-project

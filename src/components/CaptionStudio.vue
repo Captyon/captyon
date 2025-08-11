@@ -125,7 +125,7 @@ function welcomeOpenSettings() {
 async function onNewProject() {
   const name = prompt('Project name?') || 'Untitled';
   // create the project in-memory and persist it before refreshing the meta list
-  const p = store.createProject(name);
+  store.createProject(name);
   try {
     // ensure the newly created project is saved to storage so refreshMetaBar can see it
     await (store.saveCurrentProject?.());
