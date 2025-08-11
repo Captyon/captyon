@@ -15,6 +15,7 @@ import WelcomeModal from './caption-studio/modals/WelcomeModal.vue';
 import { useKeyboardShortcuts } from '../composables/useKeyboardShortcuts';
 import { useCuration } from '../composables/useCuration';
 import { useFilePicker } from '../composables/useFilePicker';
+import Toasts from './Toasts.vue';
 
 const store = useProjectStore();
 const { state } = store;
@@ -180,15 +181,7 @@ onMounted(async () => {
 
     <div class="drop-overlay" id="dropOverlay" style="display:none">Drop images and matching .txt here</div>
 
-    <!-- toasts (kept inline for simplicity) -->
-    <div id="toasts" style="pointer-events:none; position:fixed; right:14px; bottom:14px; z-index:9999">
-      <div v-for="t in state.toasts" :key="t.id" :class="['toast', t.kind]" style="pointer-events:auto; margin-top:8px">
-        <div class="row" style="display:flex; gap:8px; align-items:center; justify-content:space-between">
-          <div>{{ t.message }}</div>
-          <button class="btn small" @click="store.dismissToast(t.id)">Dismiss</button>
-        </div>
-      </div>
-    </div>
+    <Toasts />
 
     <!-- Modals -->
     <ProjectSettingsModal />
