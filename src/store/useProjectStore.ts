@@ -53,6 +53,7 @@ const state = reactive<State>({
     // Show the welcome modal on first run (only shown when there are no projects)
     showWelcomeOnStart: true,
     // Storage settings (default to browser)
+    autoSyncOnStart: false,
     storage: 'browser',
     mongoApiUrl: '',
     mongoApiKey: ''
@@ -149,18 +150,43 @@ async function testMongoConnection(): Promise<boolean> {
 
 async function syncLocalToMongo(): Promise<void> {
   try {
-    const meta = await idb.getAllMeta();
-    for (const m of meta) {
+    const localMeta = await idb.getAllMeta();
+    const opts = { baseUrl: state.settings.mongoApiUrl!, apiKey: state.settings.mongoApiKey || null };
+
+    // Try to fetch remote meta so we can avoid uploading unchanged projects.
+    let remoteMap = new Map<string, number>();
+    try {
+      const remoteMeta = await mongoDb.getAllMeta(opts);
+      for (const r of remoteMeta) {
+        remoteMap.set(r.id, r.updatedAt || 0);
+      }
+    } catch (e) {
+      // If fetching remote meta fails, fall back to uploading all local projects.
+      console.error('syncLocalToMongo: failed to fetch remote meta', e);
+    }
+
+    let uploaded = 0;
+    for (const m of localMeta) {
       try {
         const proj = await idb.getProject(m.id);
-        if (proj) {
-          await mongoDb.putProject(proj, { baseUrl: state.settings.mongoApiUrl!, apiKey: state.settings.mongoApiKey || null });
+        if (!proj) continue;
+        const remoteUpdated = remoteMap.get(m.id);
+        // If remote exists and is newer or equal, skip upload.
+        if (remoteUpdated !== undefined && proj.updatedAt <= remoteUpdated) {
+          continue;
         }
+        await mongoDb.putProject(proj, opts);
+        uploaded++;
       } catch (e) {
         console.error('syncLocalToMongo: failed project', m.id, e);
       }
     }
-    addToast('Local projects synced to MongoDB', 'ok');
+
+    if (uploaded > 0) {
+      addToast(`Synced ${uploaded} project(s) to MongoDB`, 'ok');
+    } else {
+      addToast('No local changes to sync to MongoDB', 'ok');
+    }
   } catch (e) {
     console.error('syncLocalToMongo failed', e);
   }
@@ -847,12 +873,16 @@ async function initStore() {
   await loadFirstProjectIfMissing();
   await refreshMetaBar();
 
-  // If configured for MongoDB at startup, test connection and attempt auto-sync if available
+  // If configured for MongoDB at startup, test connection and (optionally) attempt auto-sync if available
   if (state.settings.storage === 'mongodb' && state.settings.mongoApiUrl) {
     const ok = await testMongoConnection();
     if (ok) {
-      addToast('Connected to MongoDB — syncing local projects', 'ok');
-      await syncLocalToMongo();
+      if (state.settings.autoSyncOnStart) {
+        addToast('Connected to MongoDB — syncing local projects', 'ok');
+        await syncLocalToMongo();
+      } else {
+        addToast('Connected to MongoDB', 'ok');
+      }
     } else {
       addToast('MongoDB unreachable. Using browser storage. Open Settings to retry.', 'warn');
     }
