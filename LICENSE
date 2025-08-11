@@ -1,0 +1,48 @@
+Caption Studio Non-Resale Attribution License (CS-NRA-1.0)
+
+Copyright (c) 2025 github.com/rmcc3
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to use, copy, modify, merge, publish, distribute, and otherwise exploit the Software for any purpose, including commercial purposes, subject to the following conditions:
+
+1. Commercial Use
+   - Commercial use of the Software is permitted. You may incorporate the Software (original or modified) into commercial products or services and may use it to provide hosted (SaaS) services.
+
+2. Attribution / Credit
+   - Redistributions of the Software, in source or binary form, or any Derivative Works based on the Software, must include:
+     a) A clear attribution to the original project (for example: "Includes code from Caption Studio (https://github.com/rmcc3/caption-studio)"),
+     b) A copy of this License or a link to it, and
+     c) Retention of the copyright notice in any source files where it appears.
+   - If the Software is used in a user-facing product or service (for example a web, desktop, or mobile app), reasonable and visible credit must be provided in the product's "About", "Credits", documentation, or similar location.
+
+3. Non-Resale / Distribution for a Fee
+   - You MAY NOT sell, resell, sublicense for a fee, or otherwise distribute the Software or a Derivative Work as a standalone product whose primary value derives from the Software itself.
+   - You MAY include the Software in a larger work or product that is sold commercially, provided:
+     a) The Software is not offered for sale on its own or as the primary value of the offering, and
+     b) The attribution and license requirements in section 2 are followed.
+   - Offering the Software solely for direct monetary exchange (for example, charging an entry fee to download the unmodified Software or substantially similar versions) is prohibited.
+
+4. Derivative Works
+   - "Derivative Work" means any work that is based upon or derived from the Software (in whole or in part), including modifications, translations, extensions, or works that combine the Software with other code.
+   - Derivative Works are subject to the same Attribution and Non-Resale requirements as the original Software.
+
+5. No Trademark Grant
+   - This License does not grant any rights to use the trade names, trademarks, service marks, or product names of the Copyright Owner except as required for required attribution under section 2.
+
+6. Compliance and Enforcement
+   - If you are unsure whether a particular use qualifies as "resale" or is otherwise restricted by this License, contact the Copyright Owner for clarification and, if necessary, obtain a separate license.
+
+7. Disclaimer of Warranty
+   - THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE COPYRIGHT OWNER BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+8. Limitation of Liability
+   - IN NO EVENT WILL THE COPYRIGHT OWNER BE LIABLE FOR ANY SPECIAL, INCIDENTAL, INDIRECT, OR CONSEQUENTIAL DAMAGES ARISING OUT OF THE USE OF OR INABILITY TO USE THE SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
+
+9. Governing Law
+   - This License will be governed by and construed in accordance with the laws of the jurisdiction of the Copyright Owner, without regard to conflict of law principles.
+
+Definitions
+- "You" means the licensee who exercises rights under this License.
+- "Copyright Owner" means the person or entity that holds the copyright to the Software.
+- "Resell" and "sell" include distribution for direct monetary compensation, charging for download, or charging a license fee for the standalone Software or a Derivative Work where the Software is the primary item of value being sold.
+
+If you would like a version of this license that permits resale or different distribution terms, please contact the Copyright Owner to negotiate a separate commercial license.
