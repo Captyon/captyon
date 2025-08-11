@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Caption Studio logo">
+  <defs>
+    <linearGradient id="plasma" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0%" stop-color="#8a5bff"/>
+      <stop offset="50%" stop-color="#2dd9ff"/>
+      <stop offset="100%" stop-color="#ff5fd1"/>
+    </linearGradient>
+    <radialGradient id="fill" cx="50%" cy="40%" r="70%">
+      <stop offset="0%" stop-color="#ffffff15"/>
+      <stop offset="100%" stop-color="#ffffff00"/>
+    </radialGradient>
+    <filter id="softGlow" x="-30%" y="-30%" width="160%" height="160%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="8" result="b"/>
+      <feColorMatrix in="b" type="matrix" values="0 0 0 0 0.55  0 0 0 0 0.35  0 0 0 0 0.95  0 0 0 0.6 0"/>
+      <feBlend in="SourceGraphic" mode="screen"/>
+    </filter>
+  </defs>
+
+  <rect x="22" y="22" width="468" height="468" rx="40" fill="#0b1220"/>
+  <rect x="22" y="22" width="468" height="468" rx="40" fill="url(#fill)"/>
+  <rect x="22" y="22" width="468" height="468" rx="40" fill="none" stroke="url(#plasma)" stroke-width="4" filter="url(#softGlow)"/>
+
+  <g stroke="url(#plasma)" stroke-width="18" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M120 166 v180"/>
+    <path d="M392 166 v180"/>
+  </g>
+
+  <g filter="url(#softGlow)">
+    <circle cx="256" cy="256" r="86" fill="none" stroke="url(#plasma)" stroke-width="10"/>
+  </g>
+  <path d="M144 256c26-28 48 28 74 0s48 28 74 0 48 28 74 0" fill="none" stroke="url(#plasma)" stroke-width="12" stroke-linecap="round"/>
+</svg>
