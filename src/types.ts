@@ -9,6 +9,9 @@ export type Item = {
   selected: boolean;
   width: number;
   height: number;
+  // Optional media metadata for video files
+  mediaType?: 'image' | 'video' | string;
+  size?: number; // bytes
 };
 
 export type Project = {

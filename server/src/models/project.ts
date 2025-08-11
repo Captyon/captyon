@@ -12,6 +12,9 @@ export type Item = {
   selected?: boolean;
   width?: number;
   height?: number;
+  // Optional media metadata for video support
+  mediaType?: string;
+  size?: number;
 };
 
 export interface IProject extends Document {
@@ -35,7 +38,11 @@ const ItemSchema = new Schema<Item>(
     tags: [String],
     selected: Boolean,
     width: Number,
-    height: Number
+    height: Number,
+    // mediaType: 'image' | 'video' etc.
+    mediaType: String,
+    // size in bytes for uploaded media (useful for server-side limits)
+    size: Number
   },
   { _id: false }
 );

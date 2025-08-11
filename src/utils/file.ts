@@ -28,8 +28,25 @@ export function imgDims(dataUrl: string): Promise<{ w: number; h: number }> {
 export const ext = (f: File | { name: string }) => String(f.name).split('.').pop()?.toLowerCase() || '';
 export const base = (f: File | { name: string }) => String(f.name).replace(/\.[^.]+$/, '');
 
+// media type helpers
 export const isImg = (f: File | { name: string }) => /^(png|jpg|jpeg|webp|bmp|gif)$/i.test(ext(f));
 export const isTxt = (f: File | { name: string }) => ext(f) === 'txt';
+export const isVideo = (f: File | { name: string }) => /^(mp4|webm|mov|mkv|avi|m4v)$/i.test(ext(f));
+
+// Convenience: classify by major media type string (image, video, text, other)
+export function mediaTypeOf(f: File | { name: string; type?: string }) {
+  // prefer MIME type when available
+  if (f && (f as any).type) {
+    const t = (f as any).type as string;
+    if (t.startsWith('image/')) return 'image';
+    if (t.startsWith('video/')) return 'video';
+    if (t === 'text/plain') return 'text';
+  }
+  if (isImg(f)) return 'image';
+  if (isVideo(f)) return 'video';
+  if (isTxt(f)) return 'text';
+  return 'other';
+}
 
 export const sleep = (ms: number) => new Promise((res) => setTimeout(res, ms));
 

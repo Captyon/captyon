@@ -3,7 +3,7 @@ import type { Project, Item, Settings } from '../types';
 import type { ToastItem } from '../types';
 import * as idb from '../services/db';
 import * as mongoDb from '../services/db.mongo';
-import { readAsDataURL, readAsText, imgDims, isImg, isTxt, base as fileBase, sleep, slug, extractSdPrompt } from '../utils/file';
+import { readAsDataURL, readAsText, imgDims, isImg, isTxt, isVideo, mediaTypeOf, base as fileBase, sleep, slug, extractSdPrompt } from '../utils/file';
 import { captionImage, testOllama } from '../services/ollama';
 
 function newId(prefix = 'p_') {
@@ -371,8 +371,9 @@ function getAbsoluteIndex(filteredIdx: number) {
 async function ingestFiles(fileList: FileList | File[]) {
   const files = Array.from(fileList as any) as File[];
   const images = files.filter(isImg);
+  const videos = files.filter(isVideo);
   const texts = files.filter(isTxt);
-  if (images.length === 0 && texts.length === 0) {
+  if (images.length === 0 && videos.length === 0 && texts.length === 0) {
     addToast('No supported files found', '');
     return;
   }
@@ -394,51 +395,75 @@ async function ingestFiles(fileList: FileList | File[]) {
   // Build sets to avoid duplicates: files already in project and duplicates within this import
   const existingBases = new Set(proj.items.map(it => it.base || it.filename));
   const seenBases = new Set<string>();
-  const uniqueImages: File[] = [];
-  for (const imgFile of images) {
-    const b = fileBase(imgFile);
+  const uniqueMedia: File[] = [];
+
+  // Combine images and videos to a single import list while preserving order
+  const mediaCandidates = [...images, ...videos];
+  for (const f of mediaCandidates) {
+    const b = fileBase(f);
     if (existingBases.has(b) || seenBases.has(b)) continue;
     seenBases.add(b);
-    uniqueImages.push(imgFile);
+    uniqueMedia.push(f);
   }
 
-  state.progress.total = uniqueImages.length;
+  // Client-side video size limit (MB) from Vite env or fallback to 5
+  const CLIENT_VIDEO_MAX_MB = Number(import.meta.env.VITE_VIDEO_MAX_SIZE_MB) || 5;
+  // Filter out oversized videos with a friendly toast
+  const filteredMedia: File[] = [];
+  for (const f of uniqueMedia) {
+    if (isVideo(f) && typeof (f as any).size === 'number' && (f as any).size > CLIENT_VIDEO_MAX_MB * 1024 * 1024) {
+      addToast(`${f.name} skipped — video exceeds ${CLIENT_VIDEO_MAX_MB} MB limit`, 'warn');
+      continue;
+    }
+    filteredMedia.push(f);
+  }
+
+  state.progress.total = filteredMedia.length;
   state.progress.cur = 0;
 
-  for (const imgFile of uniqueImages) {
-    const b = fileBase(imgFile);
+  for (const fileItem of filteredMedia) {
+    const b = fileBase(fileItem);
     const txtFile = txtByBase.get(b) || null;
     try {
-      const [imgData, txt] = await Promise.all([readAsDataURL(imgFile), txtFile ? readAsText(txtFile) : Promise.resolve('')]);
+      const [dataUrl, txt] = await Promise.all([readAsDataURL(fileItem), txtFile ? readAsText(txtFile) : Promise.resolve('')]);
+      const mType = mediaTypeOf(fileItem);
       const item: Item = {
         id: newId('i_'),
-        filename: imgFile.name,
+        filename: fileItem.name,
         base: b,
         caption: (txt || '').trim(),
         originalCaption: (txt || '').trim(),
-        img: imgData,
+        img: dataUrl,
         tags: [],
         selected: false,
         width: 0,
         height: 0
-      };
-      try {
-        const d = await imgDims(imgData);
-        item.width = d.w;
-        item.height = d.h;
-      } catch {}
+      } as any;
+
+      // For videos add metadata and avoid image-only processing
+      if (mType === 'video') {
+        (item as any).mediaType = 'video';
+        (item as any).size = (fileItem as any).size || 0;
+      } else {
+        (item as any).mediaType = 'image';
+        try {
+          const d = await imgDims(dataUrl);
+          item.width = d.w;
+          item.height = d.h;
+        } catch {}
+      }
 
       // If user enabled prompt metadata scanning and there's no .txt original caption,
-      // attempt to extract embedded Stable Diffusion prompt metadata.
-      if (state.settings.usePromptMetadata && !(item.originalCaption && item.originalCaption.trim())) {
+      // attempt to extract embedded Stable Diffusion prompt metadata (images only).
+      if (mType === 'image' && state.settings.usePromptMetadata && !(item.originalCaption && item.originalCaption.trim())) {
         try {
-          const extracted = await extractSdPrompt(imgFile);
+          const extracted = await extractSdPrompt(fileItem);
           if (extracted) {
             // push candidate (do not apply yet)
             state.promptCandidates.push({
               itemId: item.id,
               filename: item.filename,
-              img: imgData,
+              img: dataUrl,
               prompt: extracted
             });
           }
@@ -451,13 +476,13 @@ async function ingestFiles(fileList: FileList | File[]) {
       added++;
       state.progress.cur = added;
     } catch (err) {
-      console.error('Failed to read file', imgFile.name, err);
+      console.error('Failed to read file', fileItem.name, err);
     }
   }
 
   proj.updatedAt = Date.now();
-  const skipped = images.length - uniqueImages.length;
-  addToast(`Loaded ${added} images${texts.length ? ` with ${texts.length} text file(s)` : ''}${skipped ? ` • ${skipped} duplicate(s) skipped` : ''}.`, 'ok');
+  const duplicateSkipped = mediaCandidates.length - uniqueMedia.length;
+  addToast(`Loaded ${added} media${texts.length ? ` with ${texts.length} text file(s)` : ''}${duplicateSkipped ? ` • ${duplicateSkipped} duplicate(s) skipped` : ''}.`, 'ok');
 
   // If there are extracted prompt candidates, either show the modal for confirmation
   // or auto-apply depending on settings
@@ -849,9 +874,16 @@ function rejectAllPromptCandidates() {
 async function autoCaptionCurrent() {
   const it = currentItem();
   if (!it) {
-    addToast('No image selected', 'warn');
+    addToast('No media selected', 'warn');
     return;
   }
+
+  // Block videos from AI captioning
+  if ((it as any).mediaType === 'video' || (it.filename && /\.(mp4|webm|mov|mkv|avi|m4v)$/i.test(it.filename))) {
+    addToast('AI captioning not supported for videos', 'warn');
+    return;
+  }
+
   try {
     state.status = 'Contacting Ollama';
     const img64 = it.img.split(',')[1] || '';
@@ -876,7 +908,9 @@ async function autoCaptionCurrent() {
 async function autoCaptionBulk() {
   const proj = getCurrentProject();
   if (!proj) return;
-  const targets = proj.items.filter(it => (state.filter.onlySelected ? it.selected : !it.caption));
+  // Exclude videos from targets
+  const targets = proj.items.filter(it => (state.filter.onlySelected ? it.selected : !it.caption))
+    .filter(it => !((it as any).mediaType === 'video' || (it.filename && /\.(mp4|webm|mov|mkv|avi|m4v)$/i.test(it.filename))));
   if (targets.length === 0) {
     addToast('Nothing to caption', 'warn');
     return;

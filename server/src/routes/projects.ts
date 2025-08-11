@@ -5,6 +5,9 @@ import Project from '../models/project';
 
 const router = Router();
 
+// Max video size (MB) - configurable via server .env (default 5)
+const VIDEO_MAX_SIZE_MB = process.env.VIDEO_MAX_SIZE_MB ? parseInt(process.env.VIDEO_MAX_SIZE_MB, 10) : 5;
+
 /**
  * GET /projects/meta
  * Returns array of { id, name, count, updatedAt }
@@ -110,6 +113,27 @@ router.put('/:id', async (req: Request, res: Response) => {
         const bucket = new mongoose.mongo.GridFSBucket(db, { bucketName: 'projectFiles' });
 
         if (Array.isArray(payload.items)) {
+
+          // Server-side pre-check: reject any inline video blobs that exceed the configured limit.
+          // This prevents very large video data from being stored or processed.
+          try {
+            for (const it of payload.items) {
+              if (!it || !it.img || typeof it.img !== 'string') continue;
+              const matchPreview = String(it.img).match(/^data:(.+);base64,(.*)$/);
+              if (!matchPreview) continue;
+              const mimePreview = matchPreview[1] || '';
+              const b64 = matchPreview[2] || '';
+              if (mimePreview.startsWith('video/')) {
+                const bufLen = Buffer.from(b64, 'base64').length;
+                if (bufLen > VIDEO_MAX_SIZE_MB * 1024 * 1024) {
+                  return res.status(400).json({ error: `Video ${it.filename || it.id || ''} exceeds limit of ${VIDEO_MAX_SIZE_MB} MB` });
+                }
+              }
+            }
+          } catch (preCheckErr) {
+            console.warn('Video pre-check failed', preCheckErr);
+          }
+
           for (const item of payload.items) {
             if (!item || !item.img || typeof item.img !== 'string') continue;
 
@@ -129,14 +153,20 @@ router.put('/:id', async (req: Request, res: Response) => {
                   const buffer = Buffer.from(base64Data, 'base64');
                   const filename = item.filename || item.id || `${payload.id}_${Date.now()}`;
 
-                  // Attempt to generate a thumbnail; if generation fails, fall back to a tiny placeholder image.
+                  // Attempt to generate a thumbnail for images; for non-image media (videos) use a small placeholder.
                   let thumbDataUrl: string | null = null;
                   try {
                     const mime = match ? match[1] : 'image/png';
-                    const thumbBuf = await sharp(buffer).resize({ width: 600, withoutEnlargement: true }).toBuffer();
-                    thumbDataUrl = `data:${mime};base64,${thumbBuf.toString('base64')}`;
+                    if (mime.startsWith('image/')) {
+                      const thumbBuf = await sharp(buffer).resize({ width: 600, withoutEnlargement: true }).toBuffer();
+                      thumbDataUrl = `data:${mime};base64,${thumbBuf.toString('base64')}`;
+                    } else {
+                      // Non-image media (video) - use a minimal placeholder thumbnail
+                      const placeholder = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGMAAQAABQABDQottAAAAABJRU5ErkJggg==';
+                      thumbDataUrl = `data:image/png;base64,${placeholder}`;
+                    }
                   } catch (thumbErr) {
-                    console.error('Thumbnail generation failed, using placeholder', thumbErr);
+                    console.error('Thumbnail generation failed or unsupported media type, using placeholder', thumbErr);
                     // Minimal transparent PNG 1x1 (base64)
                     const placeholder = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGMAAQAABQABDQottAAAAABJRU5ErkJggg==';
                     thumbDataUrl = `data:image/png;base64,${placeholder}`;

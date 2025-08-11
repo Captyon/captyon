@@ -19,6 +19,41 @@ watch(() => state.currentId, (v) => {
 const captionBox = ref('');
 const tagInput = ref('');
 
+// transient video metadata (not persisted) keyed by item id
+const videoMeta = ref<Record<string, { duration?: number; width?: number; height?: number }>>({});
+
+// called when a <video> element loads metadata so we can display duration/resolution
+function onVideoLoadedMeta(itemId: string | null, e: Event) {
+  try {
+    if (!itemId) return;
+    const vid = e?.target as HTMLVideoElement | null;
+    if (!vid) return;
+    const meta = { duration: isFinite(vid.duration) ? vid.duration : undefined, width: vid.videoWidth || undefined, height: vid.videoHeight || undefined };
+    videoMeta.value = { ...videoMeta.value, [String(itemId)]: meta };
+    // Also update the currentItem's width/height if not already set so other parts of the UI can reuse it
+    try {
+      const it = currentItem.value as any;
+      if (it && (!it.width || !it.height) && meta.width && meta.height) {
+        it.width = meta.width;
+        it.height = meta.height;
+      }
+    } catch {}
+  } catch (err) {
+    console.error('onVideoLoadedMeta error', err);
+  }
+}
+
+// format seconds -> H:MM:SS or M:SS
+function formatDuration(sec?: number) {
+  if (!sec || !isFinite(sec) || sec <= 0) return '';
+  const s = Math.floor(sec);
+  const hours = Math.floor(s / 3600);
+  const minutes = Math.floor((s % 3600) / 60);
+  const seconds = s % 60;
+  if (hours > 0) return `${hours}:${String(minutes).padStart(2,'0')}:${String(seconds).padStart(2,'0')}`;
+  return `${minutes}:${String(seconds).padStart(2,'0')}`;
+}
+
 const currentProject = computed(() => store.getCurrentProject());
 const items = computed(() => store.filteredItems());
 const currentItem = computed(() => store.currentItem());
@@ -727,9 +762,9 @@ onUnmounted(() => {
           </div>
         </div>
         <button class="btn" id="newProjectBtn" @click="onNewProject"><i class="icon">＋</i> New Project</button>
-        <button class="btn" id="openBtn" @click="pickFiles"><i class="icon">📁</i> Add Images+Captions</button>
-        <input ref="folderInput" id="folderInput" accept="image/*,.txt" multiple webkitdirectory directory type="file" class="hidden" @change="onFolderPicked" />
-        <input ref="filesInput" id="filesInput" accept="image/*,.txt" multiple type="file" class="hidden" @change="onFilesPicked" />
+<button class="btn" id="openBtn" @click="pickFiles"><i class="icon">📁</i> Add Media+Captions</button>
+<input ref="folderInput" id="folderInput" accept="image/*,video/*,.txt" multiple webkitdirectory directory type="file" class="hidden" @change="onFolderPicked" />
+<input ref="filesInput" id="filesInput" accept="image/*,video/*,.txt" multiple type="file" class="hidden" @change="onFilesPicked" />
         <button class="btn" id="importJsonBtn" @click="triggerJsonImport"><i class="icon">⬆</i> Import JSON</button>
         <input ref="jsonInput" id="jsonInput" accept="application/json" class="hidden" type="file" @change="onImportJson" />
         <div class="spacer"></div>
@@ -754,7 +789,7 @@ onUnmounted(() => {
 
     <main>
       <aside>
-        <div class="panel-head"><h3>Images</h3><span class="right badge" id="countBadge">{{ (currentProject && currentProject.items) ? currentProject.items.length : 0 }}</span></div>
+<div class="panel-head"><h3>Media</h3><span class="right badge" id="countBadge">{{ (currentProject && currentProject.items) ? currentProject.items.length : 0 }}</span></div>
         <div class="project-bar">
           <div class="seg" role="group" aria-label="select source" style="display:flex;gap:6px">
             <button class="btn small" id="pickFolderBtn" @click="pickFolder">Pick Folder</button>
@@ -768,8 +803,17 @@ onUnmounted(() => {
           </div>
         </div>
         <div class="thumbs" id="thumbs">
-          <div v-for="(it, idx) in items" :key="it.id" class="thumb" :class="{ active: store.getAbsoluteIndex(idx) === state.currentIndex }" @click="selectThumb(idx)" @contextmenu.prevent="toggleSelect(it)">
-            <img :src="it.img" alt="" />
+<div v-for="(it, idx) in items" :key="it.id" class="thumb" :class="{ active: store.getAbsoluteIndex(idx) === state.currentIndex }" @click="selectThumb(idx)" @contextmenu.prevent="toggleSelect(it)">
+            <!-- show inline video thumbnail for video items (muted autoplay loop) -->
+            <template v-if="it.mediaType === 'video'">
+              <div style="position:relative; width:100%; height:100%; overflow:hidden; display:flex;align-items:center;justify-content:center; background:#000">
+                <video :src="it.img" muted autoplay loop playsinline preload="metadata" style="width:100%;height:100%;object-fit:cover" @loadedmetadata="(e) => onVideoLoadedMeta(it.id, e)"></video>
+                <span style="position:absolute; left:6px; top:6px; background:rgba(0,0,0,0.5); color:#fff; padding:2px 6px; border-radius:4px; font-size:12px">▶</span>
+              </div>
+            </template>
+            <template v-else>
+              <img :src="it.img" alt="" />
+            </template>
             <div class="cap">
               <span v-if="it.caption" v-html="it.caption"></span>
               <i v-else style="color:#7d8aa0">No caption</i>
@@ -792,11 +836,32 @@ onUnmounted(() => {
           </div>
         </div>
         <div class="viewport" id="viewport">
-          <div class="canvas-wrap"><img id="mainImage" :src="currentItem?.img || ''" :style="{ transform: `scale(${state.zoom/100}) rotate(${state.rotation}deg)` }" alt="" /></div>
+<div class="canvas-wrap">
+            <template v-if="currentItem?.mediaType === 'video'">
+              <video id="mainVideo"
+                     controls
+                     :src="currentItem?.img || ''"
+                     preload="metadata"
+                     @loadedmetadata="(e) => onVideoLoadedMeta(currentItem?.id || null, e)"
+                     :style="{ transform: `scale(${state.zoom/100}) rotate(${state.rotation}deg)` }"
+                     style="max-width:100%; max-height:100%; display:block; margin:0 auto;">
+              </video>
+            </template>
+            <template v-else>
+              <img id="mainImage" :src="currentItem?.img || ''" :style="{ transform: `scale(${state.zoom/100}) rotate(${state.rotation}deg)` }" alt="" />
+            </template>
+          </div>
         </div>
         <div class="viewer-footer">
           <div style="display:flex; gap:10px; align-items:center">
-            <span id="fileInfo">{{ currentItem?.filename || 'No file' }} {{ currentItem?.width ? '• ' + currentItem.width + '×' + currentItem.height : '' }}</span>
+<span id="fileInfo">
+              {{ currentItem?.filename || 'No file' }}
+              <span v-if="currentItem?.mediaType === 'video'">
+                <span v-if="videoMeta[currentItem.id] && videoMeta[currentItem.id].duration"> • {{ formatDuration(videoMeta[currentItem.id].duration) }}</span>
+                <span v-if="(videoMeta[currentItem.id] && videoMeta[currentItem.id].width) || (currentItem?.width)"> • {{ (videoMeta[currentItem.id] && videoMeta[currentItem.id].width) || currentItem?.width }}×{{ (videoMeta[currentItem.id] && videoMeta[currentItem.id].height) || currentItem?.height }}</span>
+              </span>
+              <span v-else-if="currentItem?.width"> • {{ currentItem.width }}×{{ currentItem.height }}</span>
+            </span>
           </div>
           <div style="display:flex; gap:10px; align-items:center">
             <div class="meter"><i id="progressBar" :style="{ width: state.progress.total ? Math.max(0, Math.min(100, Math.round(state.progress.cur / state.progress.total * 100))) + '%' : '0%' }"></i></div>
