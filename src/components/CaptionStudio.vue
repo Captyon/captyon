@@ -176,7 +176,6 @@ onMounted(async () => {
         <span class="badge"><kbd>Alt+D</kbd> Remove</span>
         <span class="badge"><kbd>/</kbd> Search</span>
       </div>
-      <div><span class="badge">Offline Mode</span></div>
     </footer>
 
     <div class="drop-overlay" id="dropOverlay" style="display:none">Drop images and matching .txt here</div>

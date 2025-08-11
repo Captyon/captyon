@@ -1,5 +1,5 @@
 <template>
-  <dialog id="welcomeModal">
+  <dialog id="welcomeModal" ref="dlg">
     <div class="modal-head">
       <h3 style="margin:0">Welcome to Caption Studio</h3>
       <button class="btn small" data-close="welcomeModal" @click="close">✕</button>
@@ -13,7 +13,9 @@
       </div>
 
       <div style="margin-top:12px;display:flex;align-items:center;justify-content:space-between;gap:12px">
-        <label style="display:flex;align-items:center;gap:8px"><input type="checkbox" v-model="welcomeNever" /> Never show again</label>
+        <label style="display:flex;align-items:center;gap:8px">
+          <input type="checkbox" v-model="neverShow" /> Never show again
+        </label>
         <div style="display:flex;gap:8px">
           <button class="btn" @click="close">Close</button>
           <button class="btn primary" @click="close">Get started</button>
@@ -24,33 +26,79 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, watch, computed, onMounted } from 'vue';
 import { useProjectStore } from '../../../store/useProjectStore';
 import { useFilePicker } from '../../../composables/useFilePicker';
 
 const store = useProjectStore();
+const { state } = store;
+const dlg = ref<HTMLDialogElement | null>(null);
 const { pickFiles } = useFilePicker();
 
-const welcomeNever = ref(false);
+// "Never show again" is the inverse of showWelcomeOnStart
+const neverShow = computed({
+  get: () => !(state.settings?.showWelcomeOnStart ?? true),
+  set: (v: boolean) => {
+    // persist immediately
+    const show = !v;
+    try {
+      store.saveSettings({ showWelcomeOnStart: show });
+    } catch (e) {
+      // best-effort; ignore errors
+      console.error('Failed to save welcome setting', e);
+    }
+  }
+});
 
 function close() {
-  try { (document.getElementById('welcomeModal') as HTMLDialogElement | null)?.close(); } catch {}
+  try {
+    // Update store flag so other logic knows the modal was dismissed
+    state.showWelcomeModal = false;
+    dlg.value?.close();
+  } catch (e) {
+    // ignore DOM errors
+  }
 }
 
 function welcomeCreateProject() {
   const name = prompt('Project name?') || 'Untitled';
-  store.createProject(name);
-  try { store.saveCurrentProject?.(); } catch {}
-  try { store.refreshMetaBar?.(); } catch {}
+  try {
+    store.createProject(name);
+    store.saveCurrentProject?.();
+    store.refreshMetaBar?.();
+  } catch (e) {
+    console.error('welcomeCreateProject failed', e);
+  }
   close();
 }
 
 function welcomeAddImages() {
-  pickFiles();
+  try { pickFiles(); } catch (e) { console.error(e); }
   close();
 }
 
 function welcomeOpenSettings() {
-  try { (document.getElementById('settingsModal') as HTMLDialogElement | null)?.showModal(); } catch {}
+  try { (document.getElementById('settingsModal') as HTMLDialogElement | null)?.showModal(); } catch (e) { console.error(e); }
 }
+
+watch(() => state.showWelcomeModal, (val) => {
+  try {
+    if (val) {
+      dlg.value?.showModal();
+    } else {
+      dlg.value?.close();
+    }
+  } catch (e) {
+    // ignore DOM exceptions
+  }
+});
+
+// Ensure dialog reflects initial store state on mount
+onMounted(() => {
+  try {
+    if (state.showWelcomeModal) {
+      dlg.value?.showModal();
+    }
+  } catch (e) {}
+});
 </script>

@@ -60,4 +60,10 @@ export type ToastItem = {
   id: string;
   message: string;
   kind: ToastKind;
+  // Unix timestamp (ms) when the toast was created
+  ts?: number;
+  // Whether the user has seen (opened the tray) this toast
+  seen?: boolean;
+  // If true the toast should not auto-dismiss when displayed transiently
+  pinned?: boolean;
 };
