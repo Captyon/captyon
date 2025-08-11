@@ -1,5 +1,6 @@
 import { onMounted, onUnmounted } from 'vue';
 import { useProjectStore } from '../store/useProjectStore';
+import { useCuration } from './useCuration';
 
 type ShortcutsHandlers = {
   applyEditsSafe: () => void;
@@ -29,6 +30,16 @@ export function useKeyboardShortcuts(handlers: ShortcutsHandlers) {
     }
     // If typing in an editable field, don't trigger hotkeys
     if (isEditable) return;
+
+    // If the curation exit dialog is open, ignore curation hotkeys to avoid conflicts.
+    try {
+      const curation = useCuration();
+      if (curation?.showCurationExitConfirm?.value) {
+        return;
+      }
+    } catch (err) {
+      // ignore if composable not available in this context
+    }
 
     // Allow arrow keys for curation when active
     if (store.state.curationMode) {

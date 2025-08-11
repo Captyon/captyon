@@ -99,6 +99,9 @@ export function useCuration() {
   }
 
   function curationPointerDown(e: PointerEvent) {
+    // Ignore pointer input while the exit-confirm dialog is open so the card/canvas
+    // cannot steal interactions from the modal.
+    if (showCurationExitConfirm.value) return;
     if (curationAnimating.value) return;
     try {
       (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
@@ -109,6 +112,8 @@ export function useCuration() {
   }
 
   function curationPointerMove(e: PointerEvent) {
+    // If the exit-confirm modal is open, ignore pointer moves.
+    if (showCurationExitConfirm.value) return;
     if (!curationDragging.value || curationPointerId.value !== e.pointerId) return;
     const dx = e.clientX - curationStart.value.x;
     const dy = e.clientY - curationStart.value.y;
@@ -118,6 +123,8 @@ export function useCuration() {
   }
 
 function curationPointerUp(e: PointerEvent) {
+    // Ignore pointer up if the exit-confirm modal is visible.
+    if (showCurationExitConfirm.value) return;
     if (!curationDragging.value) return;
     try {
       (e.target as HTMLElement).releasePointerCapture?.(e.pointerId);
