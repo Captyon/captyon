@@ -91,24 +91,29 @@ html, body, #app, .app {
 }
 
 :root {
-  --bg: #1A1C1F;
-  --panel: #232527;
-  --muted: #2C2F33;
-  --border: #34373C;
-  --text: #F5F5F6;
-  --text-dim: #A0A4B0;
-  --brand: #3D6FFF;
-  --accent: #00D1B2;
+  --bg: #17181a;
+  --panel: #1f2225;
+  --muted: #26282b;
+  --border: #2d3034;
+  --text: #EDF0F4;
+  --text-dim: #9aa0ab;
+  /* Slightly darker, muted accent for a professional feel */
+  --brand: #2f4fa8;     /* darker blue */
+  --accent: #0d8c74;    /* darker teal */
   --a: var(--brand);
   --b: var(--accent);
-  --c: #5A84FF;
+  --c: #4f6fe0;
   --warn: #FF5C5C;
   --danger: #FF5C5C;
-  --ok: #00D1B2;
-  --shadow: 0 8px 30px rgba(0,0,0,0.35);
+  --ok: #00B38F;
+  --shadow: 0 8px 30px rgba(0,0,0,0.45);
   --radius-lg: 16px;
   --radius-md: 12px;
   --radius-sm: 8px;
+
+  /* Focus / interaction tokens */
+  --focus-ring: rgba(63,103,173,0.9);
+  --muted-contrast: rgba(255,255,255,0.02);
 }
 * { box-sizing: border-box } 
 html, body { height: 100% }

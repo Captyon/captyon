@@ -1,8 +1,12 @@
 <template>
   <dialog id="settingsModal">
-    <div class="modal-head">
-      <h3 style="margin:0">Settings</h3>
-      <button class="btn small" data-close="settingsModal" @click="close">✕</button>
+      <div class="modal-head">
+      <h3 style="margin:0">Detected embedded prompts</h3>
+      <button class="btn small" data-close="settingsModal" @click="close" aria-label="Close">
+        <svg class="icon-svg" viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" focusable="false">
+          <path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M6 6L18 18M6 18L18 6"/>
+        </svg>
+      </button>
     </div>
     <div class="modal-body">
       <div class="grid-2">

@@ -17,9 +17,21 @@
         <span v-if="it.caption" v-html="it.caption"></span>
         <i v-else style="color:#7d8aa0">No caption</i>
       </div>
-      <div v-if="it.selected" class="mark">✓</div>
-      <div v-else-if="it.curationStatus === 'accepted'" class="mark" style="background:var(--ok,#16a34a);">✓</div>
-      <div v-else-if="it.curationStatus === 'rejected'" class="mark" style="background:#b91c1c;">✕</div>
+      <div v-if="it.selected" class="mark">
+        <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" focusable="false">
+          <path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" d="M5.5 12.5 L10 17 L20 6"/>
+        </svg>
+      </div>
+      <div v-else-if="it.curationStatus === 'accepted'" class="mark" style="background:var(--ok,#16a34a);">
+        <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" focusable="false">
+          <path fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" d="M5.5 12.5 L10 17 L20 6"/>
+        </svg>
+      </div>
+      <div v-else-if="it.curationStatus === 'rejected'" class="mark" style="background:#b91c1c;">
+        <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" focusable="false">
+          <path fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" d="M6 6 L18 18 M6 18 L18 6"/>
+        </svg>
+      </div>
     </div>
   </div>
 </template>
