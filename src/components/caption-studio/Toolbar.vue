@@ -122,90 +122,8 @@ const exportOpen = ref(false);
 const addOpen = ref(false);
 const moreOpen = ref(false);
 
-const projectName = ref('');
-const renaming = ref(false);
-const nameError = ref('');
-const editingName = ref(false);
 const showNewProjectModal = ref(false);
-const showRenamePopover = ref(false); // kept for compatibility if needed
 
-function startRename() {
-  projectName.value = store.getCurrentProject()?.name || '';
-  nameError.value = '';
-  renaming.value = false;
-  editingName.value = true;
-  setTimeout(() => {
-    (document.querySelector('#renameInput') as HTMLInputElement | null)?.focus();
-    (document.querySelector('input.input-inline') as HTMLInputElement | null)?.focus();
-  }, 0);
-}
-function cancelRename() {
-  editingName.value = false;
-  nameError.value = '';
-}
-async function saveRenameInline() {
-  const proj = store.getCurrentProject();
-  if (!proj) return;
-  const name = projectName.value?.trim();
-  nameError.value = '';
-  if (!name) {
-    nameError.value = 'Project name required';
-    return;
-  }
-  if (name.length > 100) {
-    nameError.value = 'Name too long (max 100 characters)';
-    return;
-  }
-  const duplicate = state.order.some(id => id !== proj.id && (state.projects.get(id)?.name || '').toLowerCase() === name.toLowerCase());
-  if (duplicate) {
-    nameError.value = 'Another project already uses this name';
-    return;
-  }
-
-  const prevName = proj.name;
-  proj.name = name;
-  proj.updatedAt = Date.now();
-  renaming.value = true;
-  try {
-    await store.saveCurrentProject();
-    store.addToast('Project renamed', 'ok');
-    editingName.value = false;
-  } catch (e) {
-    // eslint-disable-next-line no-console
-    console.error('saveRenameInline failed', e);
-    proj.name = prevName;
-    store.addToast('Failed to rename project', 'warn');
-    nameError.value = 'Save failed';
-  } finally {
-    renaming.value = false;
-  }
-}
-
-function onProjectChange(e: Event) {
-  const val = (e.target as HTMLSelectElement).value;
-  if (!val) return;
-  const prevId = state.currentId;
-  store.refreshMetaBar().then(async () => {
-    try {
-      const proj = await store.loadProjectById(val);
-      if (proj) {
-        store.setCurrentProject(proj);
-      } else {
-        state.currentId = prevId;
-        store.addToast('Failed to load project; reverted selection', 'warn');
-        console.warn('onProjectChange: project not found after loadProjectById', val);
-      }
-    } catch (err) {
-      console.error('onProjectChange loadProjectById failed', err);
-      state.currentId = prevId;
-      store.addToast('Failed to load project; reverted selection', 'warn');
-    }
-  }).catch(err => {
-    console.error('onProjectChange refreshMetaBar failed', err);
-    state.currentId = prevId;
-    store.addToast('Failed to refresh project list; reverted selection', 'warn');
-  });
-}
 
 function openNewProjectModal() {
   showNewProjectModal.value = true;
@@ -239,9 +157,6 @@ function openHelp() {
   el?.showModal();
 }
 
-function saveProject() {
-  store.saveCurrentProject();
-}
 
 function exportProjectJson() {
   try {
@@ -280,10 +195,6 @@ function toggleCuration() {
   }
 }
 
-function pickFilesWrapper() {
-  pickFiles();
-  addOpen.value = false;
-}
 
 /* Close dropdowns on outside click */
 function handleDocClick(e: MouseEvent) {
@@ -302,7 +213,6 @@ function handleKeyDown(e: KeyboardEvent) {
     exportOpen.value = false;
     addOpen.value = false;
     moreOpen.value = false;
-    editingName.value = false;
     showNewProjectModal.value = false;
   }
   // Cmd/Ctrl+K focuses the search box
@@ -324,10 +234,10 @@ onBeforeUnmount(() => {
 
 <style scoped>
 /* Layout */
-.topbar { display:flex; gap:12px; align-items:center; padding:10px; width:100%; }
-.topbar-left { display:flex; align-items:center; gap:12px; min-width:220px; }
-.topbar-center { display:flex; flex:1; align-items:center; gap:12px; justify-content:center; min-width:0; }
-.topbar-right { display:flex; align-items:center; gap:8px; margin-left:auto; }
+.topbar { display:flex; gap:12px; align-items:center; padding:10px; width:100%; flex-wrap:wrap; }
+.topbar-left { display:flex; align-items:center; gap:12px; min-width:120px; flex: 0 0 auto; }
+.topbar-center { display:flex; flex:1 1 auto; align-items:center; gap:12px; justify-content:center; min-width:0; overflow:visible; }
+.topbar-right { display:flex; align-items:center; gap:8px; margin-left:auto; flex: 0 0 auto; }
 
 /* Project select */
 .project-select { display:flex; align-items:center; gap:8px; min-width:0; }
@@ -341,8 +251,8 @@ onBeforeUnmount(() => {
 .segmented-group .btn.small { padding:6px 10px; height:34px; border-radius:8px; }
 
 /* Search */
-.search-wrap { position:relative; width:420px; max-width:60%; display:flex; align-items:center; gap:8px; }
-.search-input { width:100%; padding:8px 12px; border-radius:10px; border:1px solid var(--border); background:var(--muted); color:var(--text); transition: box-shadow .12s ease, border-color .12s ease; }
+.search-wrap { position:relative; flex: 1 1 220px; min-width:120px; max-width:60%; display:flex; align-items:center; gap:8px; overflow:hidden; }
+.search-input { width:100%; padding:8px 12px; border-radius:10px; border:1px solid var(--border); background:var(--muted); color:var(--text); transition: box-shadow .12s ease, border-color .12s ease; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .search-input:focus { border-color: var(--brand); outline:none; box-shadow: 0 8px 30px rgba(47,79,168,0.12); }
 .search-wrap .icon-btn { position:absolute; right:8px; background:transparent; border:0; color:var(--text-dim); }
 .search-wrap .hint { margin-left:8px; color:var(--text-dim); font-size:12px; white-space:nowrap; }
@@ -387,6 +297,18 @@ onBeforeUnmount(() => {
   .search-wrap { width:320px; max-width:40%; }
   .topbar-left { min-width:160px; }
 }
+
+/* Mid breakpoint: move non-essential actions into More earlier to avoid overlap */
+@media (max-width: 900px) {
+  .topbar-center { justify-content:flex-start; }
+  .topbar-right .icon-btn#projectSettingsBtn,
+  .topbar-right .icon-btn#settingsBtn,
+  .topbar-right .icon-btn#helpBtn,
+  .topbar-right .status-badge { display:none; }
+  .more-wrap { display:block; }
+}
+
+/* Small screens: keep existing rules */
 @media (max-width: 680px) {
   .topbar { gap:8px; padding:8px; }
   .search-wrap { display:none; }

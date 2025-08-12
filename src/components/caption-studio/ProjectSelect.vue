@@ -25,7 +25,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, onMounted, computed } from 'vue';
+import { ref, watch, computed } from 'vue';
 import { useProjectStore } from '../../store/useProjectStore';
 
 const store = useProjectStore();
