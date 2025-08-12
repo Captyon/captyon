@@ -91,29 +91,24 @@ html, body, #app, .app {
 }
 
 :root {
-  --bg: #17181a;
-  --panel: #1f2225;
-  --muted: #26282b;
-  --border: #2d3034;
-  --text: #EDF0F4;
-  --text-dim: #9aa0ab;
-  /* Slightly darker, muted accent for a professional feel */
-  --brand: #2f4fa8;     /* darker blue */
-  --accent: #0d8c74;    /* darker teal */
+  --bg: #1A1C1F;
+  --panel: #232527;
+  --muted: #2C2F33;
+  --border: #34373C;
+  --text: #F5F5F6;
+  --text-dim: #A0A4B0;
+  --brand: #3D6FFF;
+  --accent: #00D1B2;
   --a: var(--brand);
   --b: var(--accent);
-  --c: #4f6fe0;
+  --c: #5A84FF;
   --warn: #FF5C5C;
   --danger: #FF5C5C;
-  --ok: #00B38F;
-  --shadow: 0 8px 30px rgba(0,0,0,0.45);
+  --ok: #00D1B2;
+  --shadow: 0 8px 30px rgba(0,0,0,0.35);
   --radius-lg: 16px;
   --radius-md: 12px;
   --radius-sm: 8px;
-
-  /* Focus / interaction tokens */
-  --focus-ring: rgba(63,103,173,0.9);
-  --muted-contrast: rgba(255,255,255,0.02);
 }
 * { box-sizing: border-box } 
 html, body { height: 100% }
@@ -138,16 +133,6 @@ header {
   background: rgba(11,15,20,.75);
   backdrop-filter: blur(10px);
   border-bottom: 1px solid var(--border);
-}
-@media (max-width: 900px) {
-  header {
-    grid-template-columns: 1fr auto;
-    grid-template-rows: auto auto;
-  }
-  header .brand {
-    grid-column: 1 / -1;
-    justify-content: space-between;
-  }
 }
 .brand { display: flex; align-items: center; gap: 10px }
 .logo { width: 28px; height: 28px; border-radius: 8px; background: linear-gradient(135deg, var(--brand), var(--accent)); box-shadow: var(--shadow) }
@@ -232,7 +217,7 @@ input[type="text"]:focus, input[type="search"]:focus, textarea.input:focus, sele
 
 main {
   display: grid;
-  grid-template-columns: minmax(220px, 1fr) minmax(340px, 2fr) minmax(260px, 420px);
+  grid-template-columns: 320px 1fr 390px;
   gap: 12px;
   padding: 12px;
   min-height: 0;
@@ -341,8 +326,8 @@ aside { display: grid; grid-template-rows: auto auto 1fr; min-width: 0 }
   overflow: auto;
   padding: 8px;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
-  grid-auto-rows: minmax(80px, auto);
+  grid-template-columns: repeat(auto-fill, minmax(92px, 1fr));
+  grid-auto-rows: minmax(92px, auto);
   gap: 8px;
   align-content: start;
   min-height: 0;
@@ -356,7 +341,7 @@ aside { display: grid; grid-template-rows: auto auto 1fr; min-width: 0 }
 .viewer { display: grid; grid-template-rows: auto 1fr auto; min-width: 0 }
 .viewer-tools, .editor-tools { padding: 8px 10px; border-bottom: 1px solid var(--border); display: flex; gap: 8px; align-items: center; flex-wrap: wrap }
 .viewport { position: relative; overflow: auto; background: repeating-conic-gradient(#0a0f16 0% 25%, #0b121a 0% 50%) 50% / 24px 24px; border-bottom: 1px solid var(--border) }
-.canvas-wrap { position: relative; display: flex; align-items: center; justify-content: center; cursor: grab; touch-action: none; user-select: none; -webkit-user-drag: none; max-width: 100%; max-height: 100%; }
+.canvas-wrap { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; cursor: grab; touch-action: none; user-select: none; -webkit-user-drag: none; }
 .canvas-wrap img { max-width: 100%; max-height: 100%; transform-origin: center; image-rendering: auto }
 .canvas-wrap.dragging { cursor: grabbing; }
 
@@ -447,28 +432,10 @@ textarea.input { min-height: 80px }
 .badge { background: #0f1620; border: 1px solid var(--border); color: var(--text-dim); padding: 2px 6px; border-radius: 999px; font-size: 11px }
 
 @media (max-width: 1200px) {
-  /* Tablet / small laptop: two-column layout to keep viewer and editor usable */
-  main { grid-template-columns: 1fr 1fr; grid-template-rows: auto auto; }
-  aside { order: 1 }
-  .viewer { order: 2; min-height: 50vh }
-  .editor { order: 3; min-height: 30vh }
-}
-
-@media (max-width: 800px) {
-  /* Mobile / narrow screens: single-column stacked layout */
   main { grid-template-columns: 1fr; grid-template-rows: auto auto auto }
   aside { order: 1 }
   .viewer { order: 2; min-height: 40vh }
   .editor { order: 3; min-height: 30vh }
-  header {
-    grid-template-columns: 1fr;
-    grid-template-rows: auto auto auto;
-    gap: 8px;
-  }
-  header .toolbar {
-    flex-wrap: wrap;
-    justify-content: flex-start;
-  }
 }
 
 

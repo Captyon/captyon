@@ -27,7 +27,7 @@
     </div>
 
     <div class="viewport" id="viewport">
-      <div class="canvas-wrap" :class="{ dragging: isDragging }" @pointerdown="onPointerDown" @pointermove="onPointerMove" @pointerup="onPointerUp" @pointercancel="onPointerUp" @pointerleave="onPointerUp" @wheel.prevent="onWheel">
+      <div class="canvas-wrap" :class="{ dragging: isDragging }" @pointerdown="onPointerDown" @pointermove="onPointerMove" @pointerup="onPointerUp" @pointercancel="onPointerUp" @pointerleave="onPointerUp" @wheel.prevent="onWheel" style="position:relative; touch-action: none; user-select: none; -webkit-user-drag: none">
         <div v-if="dimInfo?.source === 'auto'" style="position:absolute; top:8px; right:8px; background:rgba(0,0,0,0.55); color:#fff; padding:4px 8px; border-radius:4px; font-size:12px; pointer-events:none; z-index:10">Dimmed (auto)</div>
         <CurationCard v-if="state.curationMode" />
         <template v-else>

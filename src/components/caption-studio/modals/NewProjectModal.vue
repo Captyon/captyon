@@ -1,31 +1,31 @@
 <template>
   <dialog class="modal" role="dialog" aria-modal="true" ref="dlg">
     <div class="modal-head">
-      <h3 style="margin:0">Create new project</h3>
-      <button class="btn small" @click="close" aria-label="Close">✕</button>
+      <h3 class="m-0">Create new project</h3>
+      <button class="inline-flex items-center gap-2 px-3 py-1 h-8 text-sm rounded-md border border-border bg-panel text-text" @click="close" aria-label="Close">✕</button>
     </div>
 
     <div class="modal-body">
       <div class="field">
         <label for="newName">Project name</label>
         <input id="newName" class="input-inline" v-model="name" @keydown.enter.prevent="submit" placeholder="Untitled project" />
-        <div class="hint" style="font-size:12px;color:var(--text-dim)">Give your project a descriptive name to identify it later.</div>
+        <div class="hint text-xs">Give your project a descriptive name to identify it later.</div>
       </div>
 
-      <div class="field" style="margin-top:8px">
+      <div class="field mt-2">
         <label for="newDesc">Description (optional)</label>
         <textarea id="newDesc" class="input-inline" v-model="description" placeholder="Short description (optional)" rows="3"></textarea>
       </div>
 
-      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px">
-        <button class="btn" @click="close">Cancel</button>
-        <button class="btn primary" @click="submit" :disabled="creating">
+      <div class="flex gap-2 justify-end mt-3">
+        <button class="inline-flex items-center gap-2 px-3 py-1 h-8 text-sm rounded-md border border-border bg-panel text-text" @click="close">Cancel</button>
+        <button class="inline-flex items-center gap-2 px-3 py-1 h-8 text-sm rounded-md bg-gradient-to-b from-[var(--btn-top,#1a2432)] to-[var(--btn-btm,#101722)] border border-border text-text" @click="submit" :disabled="creating">
           <span v-if="creating">Creating…</span>
           <span v-else>Create</span>
         </button>
       </div>
 
-      <div v-if="error" style="color:var(--warn); margin-top:8px; font-size:13px">{{ error }}</div>
+      <div v-if="error" class="text-warn mt-2 text-sm">{{ error }}</div>
     </div>
   </dialog>
 </template>

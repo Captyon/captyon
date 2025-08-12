@@ -6,9 +6,9 @@
       <button class="btn small" id="copyBtn" @click="copyFromFile">Copy From File</button>
       <button class="btn small" id="clearBtn" @click="clearCaption">Clear</button>
       <button class="btn small" id="removeBtn" @click="confirmDelete">Remove <kbd>Alt+D</kbd></button>
-        <div class="right" style="display:flex; gap:8px; align-items:center">
+      <div class="right" style="display:flex; gap:8px; align-items:center">
         <label>Tags</label>
-        <input type="text" id="tagInput" v-model="tagInput" placeholder="comma separated" class="tags-input" />
+        <input type="text" id="tagInput" v-model="tagInput" placeholder="comma separated" style="width: 210px" />
       </div>
     </div>
     <textarea id="captionBox" v-model="captionBox" placeholder="Write your caption..."></textarea>
@@ -77,12 +77,3 @@ function doDelete() {
   try { (document.getElementById('deleteConfirm') as HTMLDialogElement | null)?.close(); } catch {}
 }
 </script>
-
-<style scoped>
-.tags-input { width: 210px; max-width: 45vw; box-sizing: border-box; padding: 6px 8px; border-radius: 8px; border: 1px solid var(--border); background: var(--muted); color: var(--text); }
-@media (max-width: 680px) {
-  .tags-input { width: 100%; max-width: none; }
-  .editor .editor-tools { flex-direction: column; align-items: stretch; gap: 8px; }
-  .editor .editor-tools .right { width: 100%; display:flex; justify-content:space-between; }
-}
-</style>

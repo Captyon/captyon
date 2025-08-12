@@ -1,26 +1,8 @@
 <template>
   <div style="display:flex;flex-direction:column;align-items:center;justify-content:flex-start;height:100%;width:100%;gap:12px">
-      <div role="status" aria-live="polite" style="margin-top:12px; z-index:1600; display:flex; gap:12px; align-items:center; padding:8px 14px; border-radius:999px; background:linear-gradient(90deg, rgba(2,6,23,0.92), rgba(9,12,20,0.92)); color:#fff; box-shadow:0 8px 30px rgba(0,0,0,0.6); font-weight:600;">
-      <span style="display:flex;align-items:center;gap:8px">
-        <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false" style="display:inline-block;vertical-align:middle">
-          <rect x="2" y="3" width="20" height="18" rx="2" ry="2" fill="rgba(255,255,255,0.06)" stroke="currentColor" stroke-width="1" />
-          <path d="M7 9h6M7 13h6" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-        </svg>
-        CURATION MODE
-      </span>
-      <span style="opacity:0.95; font-size:13px">
-        <svg viewBox="0 0 24 24" width="12" height="12" aria-hidden="true" focusable="false" style="vertical-align:middle; margin-right:6px">
-          <path fill="none" stroke="#7dd3a6" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" d="M5.5 12.5 L10 17 L20 6"/>
-        </svg>
-        {{ curationCounts.accepted }}
-        <span style="margin:0 8px">•</span>
-        <svg viewBox="0 0 24 24" width="12" height="12" aria-hidden="true" focusable="false" style="vertical-align:middle; margin-right:6px">
-          <path fill="none" stroke="#ff7b7b" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" d="M6 6 L18 18 M6 18 L18 6"/>
-        </svg>
-        {{ curationCounts.rejected }}
-        <span style="margin:0 8px">•</span>
-        {{ curationCounts.remaining }} left
-      </span>
+    <div role="status" aria-live="polite" style="margin-top:12px; z-index:1600; display:flex; gap:12px; align-items:center; padding:8px 14px; border-radius:999px; background:linear-gradient(90deg, rgba(2,6,23,0.92), rgba(9,12,20,0.92)); color:#fff; box-shadow:0 8px 30px rgba(0,0,0,0.6); font-weight:600;">
+      <span style="display:flex;align-items:center;gap:8px"><i style="font-style:normal">🃏</i> CURATION MODE</span>
+      <span style="opacity:0.95; font-size:13px">✓ {{ curationCounts.accepted }} • ✕ {{ curationCounts.rejected }} • {{ curationCounts.remaining }} left</span>
       <span style="opacity:0.85; font-size:13px; margin-left:8px;">Press <strong>Esc</strong> to exit</span>
       <span style="opacity:0.85; font-size:13px; margin-left:10px; display:flex; gap:8px; align-items:center;">
         <span style="display:flex;align-items:center;gap:6px">Hotkeys:</span>
@@ -74,12 +56,7 @@
         >
           <div style="display:flex;justify-content:space-between;align-items:flex-start; gap:12px;">
             <div style="display:flex;gap:12px;align-items:center;flex:1;">
-              <div style="width:44px;height:44px;border-radius:10px;background:linear-gradient(135deg,#111827,#0b1220);display:flex;align-items:center;justify-content:center;font-size:22px;">
-                <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true" focusable="false" style="display:block">
-                  <rect x="3" y="3" width="18" height="18" rx="3" ry="3" fill="rgba(255,255,255,0.04)" stroke="currentColor" stroke-width="0.9"/>
-                  <path d="M8 10h8M8 14h8" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
-                </svg>
-              </div>
+              <div style="width:44px;height:44px;border-radius:10px;background:linear-gradient(135deg,#111827,#0b1220);display:flex;align-items:center;justify-content:center;font-size:22px;">🃏</div>
               <div style="display:flex;flex-direction:column;">
                 <h3 id="cs-curation-exit-title" style="margin:0; font-size:18px;">Exit Curation</h3>
                 <p style="margin:6px 0 0 0; font-size:13px; opacity:0.9;" id="cs-curation-exit-desc">
@@ -89,11 +66,7 @@
               </div>
             </div>
 
-            <button class="btn small" @click="cancelExitCuration" aria-label="Close dialog" style="align-self:flex-start">
-              <svg class="icon-svg" viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" focusable="false">
-                <path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M6 6L18 18M6 18L18 6"/>
-              </svg>
-            </button>
+            <button class="btn small" @click="cancelExitCuration" aria-label="Close dialog" style="align-self:flex-start">✕</button>
           </div>
 
           <!-- Rejected items preview (if any) -->

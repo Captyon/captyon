@@ -1,25 +1,35 @@
 <template>
-  <div class="project-select-component" role="group" aria-label="Project selector">
-    <div v-if="!editing" class="project-label" tabindex="0" @keydown.enter.prevent="startEdit" :aria-label="`Project: ${currentName || 'No project'}`">
-      <strong class="project-name">{{ currentName || 'No project' }}</strong>
-      <button class="icon-btn small" title="Rename project" @click.stop="startEdit" aria-label="Rename project">
+  <div class="project-select-component flex items-center gap-2 min-w-0" role="group" aria-label="Project selector">
+    <div v-if="!editing" class="project-label flex items-center gap-2 min-w-0" tabindex="0" @keydown.enter.prevent="startEdit" :aria-label="`Project: ${currentName || 'No project'}`">
+      <strong class="project-name text-sm truncate font-semibold text-text">{{ currentName || 'No project' }}</strong>
+
+      <button class="inline-flex items-center p-1 rounded-md text-text hover:bg-muted-contrast" title="Rename project" @click.stop="startEdit" aria-label="Rename project">
         <svg class="icon-svg" viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" focusable="false">
           <path fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" d="M3 21l3-1 11-11a2.5 2.5 0 10-3.5-3.5L6.5 16.5 5 19l-2 2zM14.5 6.5l3 3"/>
         </svg>
       </button>
-      <select v-model="selectedId" @change="onChange" :disabled="projects.length === 0" aria-label="Select project">
+
+      <select
+        v-model="selectedId"
+        @change="onChange"
+        :disabled="projects.length === 0"
+        aria-label="Select project"
+        class="ml-2 rounded-md px-2 py-1 text-sm min-w-[160px] bg-muted text-text border border-border"
+      >
         <option v-if="projects.length === 0" disabled value="">{{ state.showWelcomeModal ? 'No project — use the Welcome screen' : 'No projects' }}</option>
         <option v-for="p in projects" :key="p.id" :value="p.id">{{ p.name }}</option>
       </select>
     </div>
 
-    <div v-else class="project-edit" @keydown.esc.prevent="cancelEdit">
-      <input ref="inputRef" v-model="name" class="input-inline" :disabled="saving" @keydown.enter.prevent="save" placeholder="Project name" aria-label="Edit project name" />
-      <button class="btn small" @click="cancelEdit" :disabled="saving" aria-label="Cancel rename">Cancel</button>
-      <button class="btn primary small" @click="save" :disabled="saving" aria-label="Save rename">
+    <div v-else class="project-edit flex items-center gap-2" @keydown.esc.prevent="cancelEdit">
+      <input ref="inputRef" v-model="name"
+        class="px-2 py-1 rounded-md border border-border bg-muted text-text min-w-[180px]"
+        :disabled="saving" @keydown.enter.prevent="save" placeholder="Project name" aria-label="Edit project name" />
+      <button class="inline-flex items-center px-3 py-1 rounded-md border border-border text-text disabled:opacity-60" @click="cancelEdit" :disabled="saving" aria-label="Cancel rename">Cancel</button>
+      <button class="inline-flex items-center px-3 py-1 rounded-md bg-gradient-to-b from-[var(--btn-top)] to-[var(--btn-btm)] border border-border text-text disabled:opacity-60" @click="save" :disabled="saving" aria-label="Save rename">
         <span v-if="saving">Saving…</span><span v-else>Save</span>
       </button>
-      <div class="rename-error" v-if="error">{{ error }}</div>
+      <div class="rename-error text-warn ml-2" v-if="error">{{ error }}</div>
     </div>
   </div>
 </template>
@@ -46,7 +56,6 @@ const error = ref('');
 const inputRef = ref<HTMLInputElement | null>(null);
 
 const currentName = computed(() => {
-  // Use store accessor to ensure we return the active project's name (reactive)
   return store.getCurrentProject()?.name ?? '';
 });
 
@@ -119,8 +128,5 @@ function onChange(e: Event) {
 .project-select-component { display:flex; align-items:center; gap:8px; min-width:0; }
 .project-label { display:flex; align-items:center; gap:8px; min-width:0; }
 .project-name { font-size:14px; max-width:220px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-.input-inline { padding:6px 8px; border-radius:8px; border:1px solid var(--border); background:var(--muted); color:var(--text); min-width:180px; }
 .rename-error { color: var(--warn); font-size:12px; margin-left:8px; }
-.icon-btn { background:transparent; border:0; padding:6px; border-radius:8px; color:var(--text); cursor:pointer }
-.icon-btn:hover { background:var(--muted-contrast); }
 </style>
