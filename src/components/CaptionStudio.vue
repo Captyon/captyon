@@ -16,6 +16,7 @@ import { useKeyboardShortcuts } from '../composables/useKeyboardShortcuts';
 import { useCuration } from '../composables/useCuration';
 import { useFilePicker } from '../composables/useFilePicker';
 import Toasts from './Toasts.vue';
+import type { ToolbarItem } from '../composables/useOverflow';
 
 const store = useProjectStore();
 const { state } = store;
@@ -83,11 +84,20 @@ useKeyboardShortcuts({
   autoCaptionCurrent,
 });
 
-// Initialize composables used by child components to ensure refs exist if needed
-useFilePicker();
-useCuration(); // curation state used by CurationCard/Viewer
+ // Initialize composables used by child components to ensure refs exist if needed
+ useFilePicker();
+ useCuration(); // curation state used by CurationCard/Viewer
 
-onMounted(async () => {
+ // Toolbar items for the header toolbar. Defined here so handlers (prev/next/etc) can be wired.
+ const toolbarItems: ToolbarItem[] = [
+   { type: 'action', id: 'prev', label: '◀ Prev', onClick: prev, priority: 10 },
+   { type: 'action', id: 'next', label: 'Next ▶', onClick: next, priority: 9 },
+   { type: 'separator', id: 'sep-1' },
+   { type: 'action', id: 'settings', label: 'Settings', onClick: () => (document.getElementById('projectSettingsModal') as HTMLDialogElement | null)?.showModal?.(), priority: 0 },
+   { type: 'action', id: 'help', label: 'Help', onClick: () => (document.getElementById('helpModal') as HTMLDialogElement | null)?.showModal?.(), priority: 0 },
+ ];
+ 
+ onMounted(async () => {
   try {
     await store.initStore();
   } catch (e) {
@@ -139,7 +149,7 @@ onMounted(async () => {
         <h1>Caption Studio</h1>
       </div>
 
-      <Toolbar />
+      <Toolbar :items="toolbarItems" />
     </header>
 
     <main>
