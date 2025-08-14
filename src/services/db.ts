@@ -46,7 +46,23 @@ export async function putProject(project: Project): Promise<void> {
           size: it.size || 0,
           curationStatus: it.curationStatus,
           width: it.width || 0,
-          height: it.height || 0
+          height: it.height || 0,
+          // Persist crop regions (only canonical fields)
+          regions: Array.isArray(it.regions)
+            ? it.regions.map((r: any) => ({
+                id: r.id,
+                name: r.name,
+                caption: r.caption,
+                x: r.x,
+                y: r.y,
+                w: r.w,
+                h: r.h,
+                aspect: r.aspect,
+                size: Array.isArray(r.size) ? [r.size[0], r.size[1]] : undefined,
+                createdAt: r.createdAt,
+                updatedAt: r.updatedAt
+              }))
+            : undefined
         }))
       };
       tx.objectStore(STORE).put(toPut);

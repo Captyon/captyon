@@ -130,8 +130,9 @@ export async function exportProjectZip() {
           for (let r = 0; r < it.regions.length; r++) {
             const region = it.regions[r];
             
-            // Handle duplicate region names by appending counter
-            let regionName = region.name || 'region';
+            // Normalize region name (spaces -> underscores) and handle duplicates
+            const originalRegionName = region.name || 'region';
+            let regionName = String(originalRegionName).trim().replace(/\s+/g, '_') || 'region';
             if (usedRegionNames[regionName]) {
               usedRegionNames[regionName]++;
               regionName = `${regionName}_${usedRegionNames[regionName]}`;
@@ -160,7 +161,7 @@ export async function exportProjectZip() {
               zipObj.file(regionTxtName, region.caption || '');
               
               regionData.push({
-                originalName: region.name || 'region',
+                originalName: originalRegionName,
                 exportName: regionName,
                 imageName: regionImgName,
                 textName: regionTxtName,
@@ -280,8 +281,8 @@ export async function exportRegions() {
         zipObj.file(name, blob);
       }
 
-      sidecar.regions.push({
-        name: r.name || '',
+    sidecar.regions.push({
+        name: (r.name || '').trim().replace(/\s+/g, '_'),
         caption: r.caption || '',
         x: Math.round(r.x),
         y: Math.round(r.y),
