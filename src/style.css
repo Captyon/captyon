@@ -126,16 +126,51 @@ body {
   grid-template-rows: auto 1fr auto;
   height: 100vh;
 }
-header {
-  position: sticky; top: 0; z-index: 10;
-  padding: 10px 12px;
-  display: grid; grid-template-columns: 260px 1fr auto; gap: 10px; align-items: center;
-  background: rgba(11,15,20,.75);
-  backdrop-filter: blur(10px);
-  border-bottom: 1px solid var(--border);
+.app-header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 0;
+  background: transparent;
+  border: none;
 }
-.brand { display: flex; align-items: center; gap: 10px }
-.logo { width: 28px; height: 28px; border-radius: 8px; background: linear-gradient(135deg, var(--brand), var(--accent)); box-shadow: var(--shadow) }
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 20px;
+  flex-shrink: 0;
+}
+
+.brand-logo {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  overflow: hidden;
+  background: linear-gradient(135deg, var(--brand), var(--accent));
+  box-shadow: var(--shadow);
+}
+
+.brand-logo .logo {
+  width: 24px;
+  height: 24px;
+  display: block;
+}
+
+.brand-title {
+  font-size: 18px;
+  margin: 0;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  color: var(--text);
+}
 
 /* Scope everything under .cs-logo-wrap so it stays in its lane */
 .cs-logo-wrap {

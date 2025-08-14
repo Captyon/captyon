@@ -64,7 +64,7 @@ export async function exportProjectZip() {
     state.progress.cur = 0;
     state.progress.total = 100;
 
-    const manifest: Record<string, { original: string; name: string }> = {};
+    const manifest: Record<string, { original: string; name: string; regions?: any[] }> = {};
     let skipped = 0;
 
     for (let i = 0; i < items.length; i++) {
@@ -112,7 +112,81 @@ export async function exportProjectZip() {
 
       zipObj.file(txtName, it.caption || '');
 
-      manifest[imgName] = { original: it.filename || '', name: imgName };
+      // Process regions for this item
+      const regionData: any[] = [];
+      if (it.regions && it.regions.length > 0) {
+        try {
+          // Prepare source image element for region cropping
+          const img = new Image();
+          img.src = it.img;
+          await new Promise((resolve, reject) => {
+            img.onload = () => resolve(null);
+            img.onerror = (e) => reject(e);
+          });
+
+          // Track region names to handle duplicates
+          const usedRegionNames: Record<string, number> = {};
+          
+          for (let r = 0; r < it.regions.length; r++) {
+            const region = it.regions[r];
+            
+            // Handle duplicate region names by appending counter
+            let regionName = region.name || 'region';
+            if (usedRegionNames[regionName]) {
+              usedRegionNames[regionName]++;
+              regionName = `${regionName}_${usedRegionNames[regionName]}`;
+            } else {
+              usedRegionNames[regionName] = 1;
+            }
+
+            // Create canvas for region crop
+            const canvas = document.createElement('canvas');
+            canvas.width = region.w;
+            canvas.height = region.h;
+            const ctx = canvas.getContext('2d');
+            if (!ctx) continue;
+
+            // Draw the crop from the source image
+            ctx.drawImage(img, region.x, region.y, region.w, region.h, 0, 0, region.w, region.h);
+
+            // Convert to PNG blob
+            const blob: Blob | null = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+            
+            if (blob) {
+              const regionImgName = `${idx}_region_${regionName}.png`;
+              const regionTxtName = `${idx}_region_${regionName}.txt`;
+              
+              zipObj.file(regionImgName, blob);
+              zipObj.file(regionTxtName, region.caption || '');
+              
+              regionData.push({
+                originalName: region.name || 'region',
+                exportName: regionName,
+                imageName: regionImgName,
+                textName: regionTxtName,
+                caption: region.caption || '',
+                coordinates: {
+                  x: Math.round(region.x),
+                  y: Math.round(region.y),
+                  w: Math.round(region.w),
+                  h: Math.round(region.h)
+                },
+                aspect: region.aspect || `${Math.round(region.w)}:${Math.round(region.h)}`,
+                size: [Math.round(region.w), Math.round(region.h)]
+              });
+            }
+          }
+        } catch (e) {
+          console.error('Failed to process regions for', it.filename, e);
+          // Continue with export even if region processing fails
+        }
+      }
+
+      manifest[imgName] = { 
+        original: it.filename || '', 
+        name: imgName,
+        regions: regionData.length > 0 ? regionData : undefined
+      };
 
       state.progress.cur = Math.floor(((i + 1) / items.length) * 30);
     }

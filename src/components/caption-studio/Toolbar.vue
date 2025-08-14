@@ -1,85 +1,85 @@
 <template>
   <div class="toolbar">
-    <!-- Project Section -->
-    <div class="toolbar-section toolbar-section--project">
-      <div class="project-selector-wrapper">
-        <select 
-          id="projectSelect" 
-          ref="projectSelect" 
-          v-model="selectedId" 
-          @change="onProjectChange" 
-          :disabled="state.order.length === 0"
-          class="project-select">
-          <option v-if="state.order.length === 0" disabled value="">
-            {{ state.showWelcomeModal ? 'No project — use the Welcome screen' : 'No projects' }}
-          </option>
-          <option v-for="id in state.order" :key="id" :value="id">
-            {{ state.projects.get(id)?.name || id }}
-          </option>
-        </select>
-        <button 
-          id="renameBtn" 
-          class="btn btn--icon btn--small" 
-          @click="openRenamePopover" 
-          title="Rename project"
-          :disabled="!selectedId">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-            <path d="m18.5 2.5 a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-          </svg>
-        </button>
+    <!-- Primary Section: Core Actions -->
+    <div class="toolbar-section toolbar-section--primary">
+      <!-- Project Management -->
+      <div class="project-group">
+        <div class="project-selector-wrapper">
+          <select 
+            v-model="selectedId" 
+            @change="onProjectChange" 
+            :disabled="state.order.length === 0"
+            class="project-select"
+            title="Select active project">
+            <option v-if="state.order.length === 0" disabled value="">
+              {{ state.showWelcomeModal ? 'No project — use Welcome screen' : 'No projects' }}
+            </option>
+            <option v-for="id in state.order" :key="id" :value="id">
+              {{ state.projects.get(id)?.name || id }}
+            </option>
+          </select>
+          <button 
+            class="btn btn--icon btn--ghost" 
+            @click="openRenamePopover" 
+            title="Rename project"
+            :disabled="!selectedId">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+              <path d="m18.5 2.5 a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+            </svg>
+          </button>
+        </div>
 
         <!-- Rename Popover -->
-        <div 
-          v-if="showRenamePopover" 
-          class="rename-popover"
-          @click.stop>
+        <div v-if="showRenamePopover" class="rename-popover" @click.stop>
           <div class="rename-popover__content">
             <input 
-              id="renameInput" 
               type="text" 
               v-model="projectName" 
               :disabled="renaming" 
               @keydown.enter.prevent="saveRenameFromPopover" 
               @keydown.esc.prevent="closeRenamePopover"
               placeholder="Project name" 
-              class="rename-input" />
+              class="rename-input" 
+              ref="renameInputRef" />
             <div class="rename-actions">
-              <button class="btn btn--small" @click="closeRenamePopover" :disabled="renaming">Cancel</button>
+              <button class="btn btn--small btn--ghost" @click="closeRenamePopover" :disabled="renaming">Cancel</button>
               <button class="btn btn--small btn--primary" @click="saveRenameFromPopover" :disabled="renaming">
-                <span v-if="renaming">Saving…</span>
-                <span v-else>Save</span>
+                {{ renaming ? 'Saving…' : 'Save' }}
               </button>
             </div>
             <div v-if="nameError" class="rename-error">{{ nameError }}</div>
           </div>
         </div>
       </div>
-    </div>
 
-    <!-- Primary Actions Section -->
-    <div class="toolbar-section toolbar-section--primary">
-      <button class="btn btn--primary" id="newProjectBtn" @click="onNewProject">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <line x1="12" y1="5" x2="12" y2="19"/>
-          <line x1="5" y1="12" x2="19" y2="12"/>
-        </svg>
-        <span class="btn__text">New Project</span>
-      </button>
+      <!-- Core Actions -->
+      <div class="action-group">
+        <button class="btn btn--primary" @click="onNewProject" title="Create new project">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/>
+            <line x1="12" y1="13" x2="12" y2="19"/>
+            <line x1="9" y1="16" x2="15" y2="16"/>
+          </svg>
+          <span class="btn__text">New Project</span>
+        </button>
 
-      <button class="btn btn--primary" id="openBtn" @click="pickFiles">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
-        </svg>
-        <span class="btn__text">Add Media</span>
-      </button>
+        <button class="btn btn--accent" @click="pickFiles" title="Add images or videos">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+            <circle cx="9" cy="9" r="2"/>
+            <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/>
+          </svg>
+          <span class="btn__text">Add Media</span>
+        </button>
 
-      <button class="btn btn--accent" id="autoBtn" @click="store.autoCaptionBulk">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/>
-        </svg>
-        <span class="btn__text">Auto Caption</span>
-      </button>
+        <button class="btn btn--highlight" @click="store.autoCaptionBulk" title="Auto-generate captions with AI">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/>
+          </svg>
+          <span class="btn__text">Auto Caption</span>
+        </button>
+      </div>
     </div>
 
     <!-- Search Section -->
@@ -91,236 +91,157 @@
         </svg>
         <input 
           type="search" 
-          ref="searchBox" 
-          id="searchBox" 
           v-model="state.filter.text" 
           placeholder="Search captions or files" 
-          class="search-input" />
-      </div>
-    </div>
-
-    <!-- Secondary Actions Section -->
-    <div class="toolbar-section toolbar-section--secondary">
-      <button class="btn" id="importJsonBtn" @click="triggerJsonImport">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-          <polyline points="7,10 12,15 17,10"/>
-          <line x1="12" y1="15" x2="12" y2="3"/>
-        </svg>
-        <span class="btn__text">Import</span>
-      </button>
-
-      <button class="btn" id="saveBtn" @click="saveProject">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
-          <polyline points="17,21 17,13 7,13 7,21"/>
-          <polyline points="7,3 7,8 15,8"/>
-        </svg>
-        <span class="btn__text">Save</span>
-      </button>
-
-      <div class="export-dropdown">
-        <button class="btn" id="exportBtn" @click="exportOpen = !exportOpen">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M21 9v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9"/>
-            <polyline points="7,14 12,9 17,14"/>
-            <line x1="12" y1="9" x2="12" y2="21"/>
+          class="search-input"
+          ref="searchInputRef" />
+        <button 
+          v-if="state.filter.text" 
+          @click="state.filter.text = ''"
+          class="search-clear"
+          title="Clear search">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"/>
+            <line x1="6" y1="6" x2="18" y2="18"/>
           </svg>
-          <span class="btn__text">Export</span>
         </button>
-        <div v-if="exportOpen" class="dropdown-menu dropdown-menu--right">
-          <button class="dropdown-item" @click="exportProjectJson">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-              <polyline points="14,2 14,8 20,8"/>
-            </svg>
-            JSON
-          </button>
-          <button class="dropdown-item" @click="exportProjectZip">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-              <path d="M16 22h2a2 2 0 0 0 2-2V7.5L14.5 2H6a2 2 0 0 0-2 2v3"/>
-              <polyline points="14,2 14,8 20,8"/>
-              <path d="M10 20v-1a2 2 0 1 1 4 0v1a2 2 0 1 1-4 0Z"/>
-              <path d="M10 7h4"/>
-              <path d="M10 12h4"/>
-            </svg>
-            Zip (images + txt)
-          </button>
-        </div>
       </div>
     </div>
 
-    <!-- Mobile Menu Toggle -->
-    <div class="toolbar-section toolbar-section--mobile-toggle">
-      <button class="btn btn--icon mobile-menu-toggle" @click="mobileMenuOpen = !mobileMenuOpen">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <line x1="3" y1="6" x2="21" y2="6"/>
-          <line x1="3" y1="12" x2="21" y2="12"/>
-          <line x1="3" y1="18" x2="21" y2="18"/>
-        </svg>
-      </button>
-    </div>
-
-    <!-- Mobile Menu -->
-    <div v-if="mobileMenuOpen" class="mobile-menu">
-      <div class="mobile-menu__content">
-        <button class="mobile-menu__item" @click="() => { triggerJsonImport(); mobileMenuOpen = false; }">
+    <!-- Secondary Actions -->
+    <div class="toolbar-section toolbar-section--secondary">
+      <!-- File Management -->
+      <div class="action-group action-group--compact">
+        <button class="btn btn--ghost" @click="triggerJsonImport" title="Import project data">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
             <polyline points="7,10 12,15 17,10"/>
             <line x1="12" y1="15" x2="12" y2="3"/>
           </svg>
-          Import JSON
+          <span class="btn__text">Import</span>
         </button>
 
-        <button class="mobile-menu__item" @click="() => { saveProject(); mobileMenuOpen = false; }">
+        <button class="btn btn--ghost" @click="saveProject" title="Save current project">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
             <polyline points="17,21 17,13 7,13 7,21"/>
             <polyline points="7,3 7,8 15,8"/>
           </svg>
-          Save Project
+          <span class="btn__text">Save</span>
         </button>
 
-        <div class="mobile-menu__divider"></div>
+        <!-- Export Dropdown -->
+        <div class="dropdown-wrapper" ref="exportDropdownRef">
+          <button class="btn btn--ghost" @click="toggleExportDropdown" title="Export project">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 9v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9"/>
+              <polyline points="7,14 12,9 17,14"/>
+              <line x1="12" y1="9" x2="12" y2="21"/>
+            </svg>
+            <span class="btn__text">Export</span>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="dropdown-arrow">
+              <polyline points="6,9 12,15 18,9"/>
+            </svg>
+          </button>
+          <div v-if="exportOpen" class="dropdown-menu">
+            <button class="dropdown-item" @click="exportProjectJson">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                <polyline points="14,2 14,8 20,8"/>
+              </svg>
+              Export as JSON
+            </button>
+            <button class="dropdown-item" @click="exportProjectZip">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M16 22h2a2 2 0 0 0 2-2V7.5L14.5 2H6a2 2 0 0 0-2 2v3"/>
+                <polyline points="14,2 14,8 20,8"/>
+                <path d="M10 20v-1a2 2 0 1 1 4 0v1a2 2 0 1 1-4 0Z"/>
+                <path d="M10 7h4"/>
+                <path d="M10 12h4"/>
+              </svg>
+              Export as ZIP
+            </button>
+          </div>
+        </div>
+      </div>
 
-        <button class="mobile-menu__item" @click="() => { exportProjectJson(); mobileMenuOpen = false; }">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-            <polyline points="14,2 14,8 20,8"/>
-          </svg>
-          Export JSON
-        </button>
-
-        <button class="mobile-menu__item" @click="() => { exportProjectZip(); mobileMenuOpen = false; }">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-            <path d="M16 22h2a2 2 0 0 0 2-2V7.5L14.5 2H6a2 2 0 0 0-2 2v3"/>
-            <polyline points="14,2 14,8 20,8"/>
-            <path d="M10 20v-1a2 2 0 1 1 4 0v1a2 2 0 1 1-4 0Z"/>
-            <path d="M10 7h4"/>
-            <path d="M10 12h4"/>
-          </svg>
-          Export Zip
-        </button>
-
-        <div class="mobile-menu__divider"></div>
-
+      <!-- Tools & Settings -->
+      <div class="action-group action-group--compact">
         <button 
-          class="mobile-menu__item"
-          :class="{ 'mobile-menu__item--active': state.curationMode }"
-          @click="() => { 
-            if (state.curationMode) { 
-              openCurationExitConfirm(); 
-            } else { 
-              store.startCuration(); 
-            } 
-            mobileMenuOpen = false; 
-          }">
+          class="btn"
+          :class="{ 'btn--active': state.curationMode }"
+          @click="toggleCuration"
+          title="Curation mode - quickly accept/reject items">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
             <line x1="8" y1="21" x2="16" y2="21"/>
             <line x1="12" y1="17" x2="12" y2="21"/>
           </svg>
-          Curation Mode
-          <span v-if="state.curationMode" class="curation-counts">
-            <span class="curation-accepted">✓ {{ curationCounts.accepted }}</span>
-            <span class="curation-rejected">✕ {{ curationCounts.rejected }}</span>
-            <span>{{ curationCounts.remaining }} left</span>
+          <span class="btn__text">Curation</span>
+          <span v-if="state.curationMode && (curationCounts.accepted > 0 || curationCounts.rejected > 0)" class="curation-badge">
+            <span class="curation-accepted">✓{{ curationCounts.accepted }}</span>
+            <span class="curation-rejected">✕{{ curationCounts.rejected }}</span>
           </span>
         </button>
 
-        <button class="mobile-menu__item" @click="() => { openProjectSettings(); mobileMenuOpen = false; }">
+        <button class="btn btn--ghost" @click="openProjectSettings" title="Project settings">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>
             <circle cx="12" cy="12" r="3"/>
           </svg>
-          Project Settings
+          <span class="btn__text">Settings</span>
         </button>
+      </div>
 
-        <button class="mobile-menu__item" @click="() => { openSettings(); mobileMenuOpen = false; }">
+      <!-- More Menu (Mobile) -->
+      <div class="mobile-menu-wrapper">
+        <button class="btn btn--ghost mobile-menu-toggle" @click="toggleMobileMenu" title="More options">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="12" cy="12" r="3"/>
-            <path d="M12 1v6m0 6v6"/>
-            <path d="m1 12 6 0m6 0 6 0"/>
-            <path d="M13.5 3.5 11 6M6 13.5l-2.5-2.5M16.5 20.5 14 18M18 6l-2.5 2.5"/>
+            <circle cx="12" cy="12" r="1"/>
+            <circle cx="19" cy="12" r="1"/>
+            <circle cx="5" cy="12" r="1"/>
           </svg>
-          Settings
         </button>
-
-        <button class="mobile-menu__item" @click="() => { openHelp(); mobileMenuOpen = false; }">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="12" cy="12" r="10"/>
-            <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
-            <line x1="12" y1="17" x2="12.01" y2="17"/>
-          </svg>
-          Help
-        </button>
+        <div v-if="mobileMenuOpen" class="mobile-menu">
+          <button class="mobile-menu-item" @click="() => { openSettings(); closeMobileMenu(); }">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="3"/>
+              <path d="M12 1v6m0 6v6"/>
+              <path d="m1 12 6 0m6 0 6 0"/>
+            </svg>
+            App Settings
+          </button>
+          <button class="mobile-menu-item" @click="() => { openHelp(); closeMobileMenu(); }">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/>
+              <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
+              <line x1="12" y1="17" x2="12.01" y2="17"/>
+            </svg>
+            Help & Support
+          </button>
+        </div>
       </div>
     </div>
 
-    <!-- Desktop-only tertiary actions -->
-    <div class="toolbar-section toolbar-section--tertiary">
-      <button 
-        class="btn"
-        :class="{ 'btn--active': state.curationMode }"
-        id="curationBtn"
-        @click="() => { if (state.curationMode) { openCurationExitConfirm(); } else { store.startCuration(); } }"
-        title="Curation mode (swipe to accept/reject)">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
-          <line x1="8" y1="21" x2="16" y2="21"/>
-          <line x1="12" y1="17" x2="12" y2="21"/>
-        </svg>
-        <span class="btn__text">Curation</span>
-        <span v-if="state.curationMode" class="curation-badge">
-          <span class="curation-accepted">✓{{ curationCounts.accepted }}</span>
-          <span class="curation-rejected">✕{{ curationCounts.rejected }}</span>
-          <span class="curation-remaining">{{ curationCounts.remaining }} left</span>
-        </span>
-      </button>
-
-      <button class="btn" id="projectSettingsBtn" @click="openProjectSettings">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>
-          <circle cx="12" cy="12" r="3"/>
-        </svg>
-        <span class="btn__text">Project Settings</span>
-      </button>
-
-      <button class="btn" id="settingsBtn" @click="openSettings">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <circle cx="12" cy="12" r="3"/>
-          <path d="M12 1v6m0 6v6"/>
-          <path d="m1 12 6 0m6 0 6 0"/>
-          <path d="M13.5 3.5 11 6M6 13.5l-2.5-2.5M16.5 20.5 14 18M18 6l-2.5 2.5"/>
-        </svg>
-        <span class="btn__text">Settings</span>
-      </button>
-
-      <button class="btn btn--ghost" id="helpBtn" @click="openHelp">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <circle cx="12" cy="12" r="10"/>
-          <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
-          <line x1="12" y1="17" x2="12.01" y2="17"/>
-        </svg>
-        <span class="btn__text">Help</span>
-      </button>
-    </div>
-
-    <!-- Status Badge -->
+    <!-- Status Display -->
     <div class="toolbar-section toolbar-section--status">
-      <span class="status-badge">{{ state.status }}</span>
+      <div class="status-group">
+        <div class="status-badge">{{ state.status }}</div>
+        <div v-if="state.curationMode && curationCounts.remaining > 0" class="curation-remaining">
+          {{ curationCounts.remaining }} remaining
+        </div>
+      </div>
     </div>
 
     <!-- Hidden file inputs -->
-    <input ref="folderInput" id="folderInput" accept="image/*,video/*,.txt" multiple webkitdirectory directory type="file" class="hidden" @change="onFolderPicked" />
-    <input ref="filesInput" id="filesInput" accept="image/*,video/*,.txt" multiple type="file" class="hidden" @change="onFilesPicked" />
-    <input ref="jsonInput" id="jsonInput" accept="application/json" class="hidden" type="file" @change="onImportJson" />
+    <input ref="folderInput" accept="image/*,video/*,.txt" multiple webkitdirectory directory type="file" class="hidden" @change="onFolderPicked" />
+    <input ref="filesInput" accept="image/*,video/*,.txt" multiple type="file" class="hidden" @change="onFilesPicked" />
+    <input ref="jsonInput" accept="application/json" class="hidden" type="file" @change="onImportJson" />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, watch, onMounted, onUnmounted } from 'vue';
+import { ref, watch, onMounted, onUnmounted, nextTick } from 'vue';
 import { useProjectStore } from '../../store/useProjectStore';
 import { useFilePicker } from '../../composables/useFilePicker';
 import { useCuration } from '../../composables/useCuration';
@@ -331,8 +252,7 @@ const { state } = store;
 const { filesInput, folderInput, jsonInput, pickFiles, triggerJsonImport, onFilesPicked, onFolderPicked, onImportJson } = useFilePicker();
 const { curationCounts, openCurationExitConfirm } = useCuration();
 
-const projectSelect = ref<HTMLSelectElement | null>(null);
-const searchBox = ref<HTMLInputElement | null>(null);
+// Reactive refs
 const selectedId = ref<string | null>(state.currentId);
 const exportOpen = ref(false);
 const mobileMenuOpen = ref(false);
@@ -342,38 +262,76 @@ const projectName = ref('');
 const renaming = ref(false);
 const nameError = ref('');
 const showRenamePopover = ref(false);
+const renameInputRef = ref<HTMLInputElement | null>(null);
 
+// Element refs
+const searchInputRef = ref<HTMLInputElement | null>(null);
+const exportDropdownRef = ref<HTMLElement | null>(null);
+
+// Watchers
 watch(() => state.currentId, (v) => { selectedId.value = v; });
 
-// Close dropdowns when clicking outside
+// Event handlers for closing dropdowns
 function handleClickOutside(e: Event) {
-  if (!((e.target as Element)?.closest?.('.export-dropdown'))) {
+  const target = e.target as Element;
+  
+  // Close export dropdown
+  if (exportOpen.value && !exportDropdownRef.value?.contains(target)) {
     exportOpen.value = false;
   }
-  if (!((e.target as Element)?.closest?.('.mobile-menu, .mobile-menu-toggle'))) {
+  
+  // Close mobile menu
+  if (mobileMenuOpen.value && !target.closest('.mobile-menu-wrapper')) {
     mobileMenuOpen.value = false;
   }
-  if (!((e.target as Element)?.closest?.('.rename-popover, .project-selector-wrapper button'))) {
+  
+  // Close rename popover
+  if (showRenamePopover.value && !target.closest('.project-group')) {
     closeRenamePopover();
+  }
+}
+
+// Keyboard shortcuts
+function handleKeydown(e: KeyboardEvent) {
+  // Focus search with "/" key
+  if (e.key === '/' && !e.ctrlKey && !e.altKey && !e.metaKey) {
+    const activeElement = document.activeElement;
+    if (activeElement?.tagName !== 'INPUT' && activeElement?.tagName !== 'TEXTAREA') {
+      e.preventDefault();
+      searchInputRef.value?.focus();
+    }
+  }
+  
+  // Escape to close modals/dropdowns
+  if (e.key === 'Escape') {
+    exportOpen.value = false;
+    mobileMenuOpen.value = false;
+    if (showRenamePopover.value) {
+      closeRenamePopover();
+    }
   }
 }
 
 onMounted(() => {
   document.addEventListener('click', handleClickOutside);
+  document.addEventListener('keydown', handleKeydown);
 });
 
 onUnmounted(() => {
   document.removeEventListener('click', handleClickOutside);
+  document.removeEventListener('keydown', handleKeydown);
 });
 
+// Project management functions
 function openRenamePopover() {
   projectName.value = store.getCurrentProject()?.name || '';
   nameError.value = '';
   renaming.value = false;
   showRenamePopover.value = true;
-  setTimeout(() => {
-    try { (document.getElementById('renameInput') as HTMLInputElement | null)?.focus(); } catch {}
-  }, 0);
+  nextTick(() => {
+    renameInputRef.value?.focus();
+    renameInputRef.value?.select();
+  });
 }
 
 function closeRenamePopover() {
@@ -384,17 +342,24 @@ function closeRenamePopover() {
 async function saveRenameFromPopover() {
   const proj = store.getCurrentProject();
   if (!proj) return;
+  
   const name = projectName.value?.trim();
   nameError.value = '';
+  
   if (!name) {
     nameError.value = 'Project name required';
     return;
   }
+  
   if (name.length > 100) {
     nameError.value = 'Name too long (max 100 characters)';
     return;
   }
-  const duplicate = state.order.some(id => id !== proj.id && (state.projects.get(id)?.name || '').toLowerCase() === name.toLowerCase());
+  
+  const duplicate = state.order.some(id => 
+    id !== proj.id && (state.projects.get(id)?.name || '').toLowerCase() === name.toLowerCase()
+  );
+  
   if (duplicate) {
     nameError.value = 'Another project already uses this name';
     return;
@@ -404,6 +369,7 @@ async function saveRenameFromPopover() {
   proj.name = name;
   proj.updatedAt = Date.now();
   renaming.value = true;
+  
   try {
     await store.saveCurrentProject();
     store.addToast('Project renamed', 'ok');
@@ -421,6 +387,7 @@ async function saveRenameFromPopover() {
 function onProjectChange(e: Event) {
   const val = (e.target as HTMLSelectElement).value;
   if (!val) return;
+  
   const prevId = state.currentId;
   store.refreshMetaBar().then(async () => {
     try {
@@ -430,7 +397,6 @@ function onProjectChange(e: Event) {
       } else {
         state.currentId = prevId;
         store.addToast('Failed to load project; reverted selection', 'warn');
-        console.warn('onProjectChange: project not found after loadProjectById', val);
       }
     } catch (err) {
       console.error('onProjectChange loadProjectById failed', err);
@@ -445,16 +411,47 @@ function onProjectChange(e: Event) {
 }
 
 async function onNewProject() {
-  // Respect prompt cancellation: prompt() returns null when the user cancels.
   const resp = prompt('Project name?');
-  if (resp === null) return; // user cancelled — do not create a project
-
+  if (resp === null) return; // user cancelled
+  
   const name = (resp || '').trim() || 'Untitled';
   store.createProject(name);
-  try { await (store.saveCurrentProject?.()); } catch (e) { console.error('Failed to save new project', e); }
-  try { await store.refreshMetaBar(); } catch (e) { console.error(e); }
+  
+  try { 
+    await store.saveCurrentProject(); 
+  } catch (e) { 
+    console.error('Failed to save new project', e); 
+  }
+  
+  try { 
+    await store.refreshMetaBar(); 
+  } catch (e) { 
+    console.error(e); 
+  }
 }
 
+// UI state functions
+function toggleExportDropdown() {
+  exportOpen.value = !exportOpen.value;
+}
+
+function toggleMobileMenu() {
+  mobileMenuOpen.value = !mobileMenuOpen.value;
+}
+
+function closeMobileMenu() {
+  mobileMenuOpen.value = false;
+}
+
+function toggleCuration() {
+  if (state.curationMode) {
+    openCurationExitConfirm();
+  } else {
+    store.startCuration();
+  }
+}
+
+// Modal functions
 function openProjectSettings() {
   const el = document.getElementById('projectSettingsModal') as HTMLDialogElement | null;
   el?.showModal();
@@ -470,6 +467,7 @@ function openHelp() {
   el?.showModal();
 }
 
+// Project functions
 function saveProject() {
   store.saveCurrentProject();
 }
@@ -496,190 +494,225 @@ function exportProjectZip() {
 </script>
 
 <style scoped>
+/* Base Toolbar Layout */
 .toolbar {
   display: flex;
+  width: 100%;
   align-items: center;
-  gap: 12px;
-  padding: 8px 12px;
-  background: rgba(11,15,20,.75);
-  backdrop-filter: blur(10px);
+  gap: 16px;
+  padding: 12px 20px;
+  background: linear-gradient(180deg, 
+    rgba(35, 37, 39, 0.98) 0%, 
+    rgba(26, 28, 31, 0.95) 100%
+  );
+  backdrop-filter: blur(16px);
   border-bottom: 1px solid var(--border);
-  min-height: 60px;
+  min-height: 64px;
+  position: relative;
   overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }
 
-/* Responsive breakpoints */
-@media (max-width: 1200px) {
-  .toolbar-section--primary,
-  .toolbar-section--tertiary,
-  .toolbar-section--status {
-    display: none;
-  }
-  
-  .toolbar-section--mobile-toggle {
-    display: flex;
-  }
+.toolbar::-webkit-scrollbar {
+  display: none;
 }
 
-@media (max-width: 768px) {
-  .toolbar {
-    gap: 8px;
-  }
-  
-  .toolbar-section--search,
-  .toolbar-section--secondary {
-    display: none;
-  }
-}
-
-/* Section layouts */
+/* Toolbar Sections */
 .toolbar-section {
   display: flex;
   align-items: center;
-  gap: 8px;
+  flex-shrink: 0;
   min-width: 0;
-  flex-shrink: 0;
-}
-
-.toolbar-section--project {
-  flex-shrink: 0;
-  min-width: 200px;
 }
 
 .toolbar-section--primary {
-  flex-shrink: 0;
+  gap: 20px;
 }
 
 .toolbar-section--search {
   flex: 1;
-  max-width: 400px;
-  min-width: 200px;
   justify-content: center;
+  max-width: 480px;
+  min-width: 200px;
 }
 
 .toolbar-section--secondary {
-  flex-shrink: 0;
-}
-
-.toolbar-section--tertiary {
-  flex-shrink: 0;
+  gap: 12px;
 }
 
 .toolbar-section--status {
-  flex-shrink: 0;
   margin-left: auto;
 }
 
-.toolbar-section--mobile-toggle {
-  display: none;
-  flex-shrink: 0;
+/* Action Groups */
+.action-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
-/* Project selector */
-.project-selector-wrapper {
+.action-group--compact {
+  gap: 8px;
+}
+
+/* Project Management */
+.project-group {
   position: relative;
   display: flex;
   align-items: center;
   gap: 8px;
-  min-width: 0;
+}
+
+.project-selector-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .project-select {
-  min-width: 140px;
-  max-width: 220px;
-  background: var(--muted);
+  min-width: 160px;
+  max-width: 240px;
+  background: rgba(255, 255, 255, 0.06);
   color: var(--text);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  padding: 8px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  padding: 10px 14px;
   font-size: 14px;
-  transition: border-color 0.25s;
-  flex-shrink: 1;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.project-select:hover {
+  border-color: rgba(255, 255, 255, 0.20);
+  background: rgba(255, 255, 255, 0.08);
 }
 
 .project-select:focus {
   outline: none;
   border-color: var(--brand);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
 }
 
-/* Button styles */
+.project-select:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Buttons */
 .btn {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 16px;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--border);
-  background: var(--muted);
+  padding: 10px 16px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.06);
   color: var(--text);
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.25s ease;
+  transition: all 0.2s ease;
   white-space: nowrap;
   text-decoration: none;
-  min-height: 36px;
+  min-height: 40px;
+  position: relative;
 }
 
 .btn:hover {
-  border-color: var(--brand);
-  background: color-mix(in srgb, var(--muted) 80%, var(--brand) 20%);
+  border-color: rgba(255, 255, 255, 0.20);
+  background: rgba(255, 255, 255, 0.08);
+  transform: translateY(-1px);
 }
 
 .btn:focus {
-  outline: 2px solid var(--brand);
-  outline-offset: 2px;
+  outline: none;
+  border-color: var(--brand);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+.btn:active {
+  transform: translateY(0);
 }
 
 .btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+  transform: none;
 }
 
+/* Button Variants */
 .btn--primary {
-  background: linear-gradient(180deg, var(--brand), color-mix(in srgb, var(--brand) 80%, #000 20%));
+  background: linear-gradient(180deg, var(--brand), color-mix(in srgb, var(--brand) 85%, #000 15%));
   border-color: var(--brand);
   color: white;
+  font-weight: 600;
 }
 
 .btn--primary:hover {
   background: linear-gradient(180deg, 
-    color-mix(in srgb, var(--brand) 90%, white 10%), 
-    color-mix(in srgb, var(--brand) 70%, #000 30%)
+    color-mix(in srgb, var(--brand) 92%, white 8%), 
+    color-mix(in srgb, var(--brand) 78%, #000 22%)
   );
+  border-color: color-mix(in srgb, var(--brand) 92%, white 8%);
 }
 
 .btn--accent {
-  background: linear-gradient(180deg, var(--accent), color-mix(in srgb, var(--accent) 80%, #000 20%));
+  background: linear-gradient(180deg, var(--accent), color-mix(in srgb, var(--accent) 85%, #000 15%));
   border-color: var(--accent);
   color: white;
+  font-weight: 600;
 }
 
 .btn--accent:hover {
   background: linear-gradient(180deg, 
-    color-mix(in srgb, var(--accent) 90%, white 10%), 
-    color-mix(in srgb, var(--accent) 70%, #000 30%)
+    color-mix(in srgb, var(--accent) 92%, white 8%), 
+    color-mix(in srgb, var(--accent) 78%, #000 22%)
   );
+  border-color: color-mix(in srgb, var(--accent) 92%, white 8%);
+}
+
+.btn--highlight {
+  background: linear-gradient(180deg, 
+    rgba(139, 92, 246, 1), 
+    rgba(99, 102, 241, 0.9)
+  );
+  border-color: rgba(139, 92, 246, 1);
+  color: white;
+  font-weight: 600;
+}
+
+.btn--highlight:hover {
+  background: linear-gradient(180deg, 
+    rgba(147, 107, 249, 1), 
+    rgba(107, 114, 242, 0.95)
+  );
+  border-color: rgba(147, 107, 249, 1);
 }
 
 .btn--ghost {
   background: transparent;
-  border-color: transparent;
+  border-color: rgba(255, 255, 255, 0.06);
 }
 
 .btn--ghost:hover {
-  background: var(--muted);
-  border-color: var(--border);
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.12);
 }
 
 .btn--active {
-  background: color-mix(in srgb, var(--brand) 20%, var(--muted) 80%);
+  background: linear-gradient(180deg, 
+    rgba(99, 102, 241, 0.2), 
+    rgba(99, 102, 241, 0.1)
+  );
   border-color: var(--brand);
+  color: var(--brand);
 }
 
 .btn--icon {
-  padding: 8px;
-  min-width: 36px;
+  padding: 10px;
+  min-width: 40px;
   justify-content: center;
 }
 
@@ -704,113 +737,158 @@ function exportProjectZip() {
   display: flex;
   align-items: center;
   width: 100%;
-  max-width: 300px;
-  min-width: 180px;
+  max-width: 400px;
 }
 
 .search-icon {
   position: absolute;
   left: 12px;
-  color: var(--text-dim);
+  color: rgba(255, 255, 255, 0.4);
   pointer-events: none;
   z-index: 1;
 }
 
 .search-input {
   width: 100%;
-  padding: 8px 12px 8px 40px;
-  background: var(--muted);
+  padding: 10px 14px 10px 40px;
+  background: rgba(255, 255, 255, 0.06);
   color: var(--text);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
   font-size: 14px;
-  transition: border-color 0.25s;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  padding-right: 40px;
 }
 
 .search-input:focus {
   outline: none;
   border-color: var(--brand);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+  background: rgba(255, 255, 255, 0.08);
 }
 
 .search-input::placeholder {
-  color: var(--text-dim);
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.search-clear {
+  position: absolute;
+  right: 8px;
+  padding: 4px;
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.4);
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.search-clear:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.7);
 }
 
 /* Dropdowns */
-.export-dropdown {
+.dropdown-wrapper {
   position: relative;
+}
+
+.dropdown-arrow {
+  margin-left: 4px;
+  transition: transform 0.2s ease;
+}
+
+.dropdown-wrapper:hover .dropdown-arrow {
+  transform: rotate(180deg);
 }
 
 .dropdown-menu {
   position: absolute;
-  top: 100%;
-  margin-top: 4px;
-  background: var(--panel);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  box-shadow: var(--shadow);
+  top: calc(100% + 8px);
+  right: 0;
+  background: rgba(15, 20, 26, 0.98);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
   z-index: 1000;
-  min-width: 160px;
-  padding: 4px;
+  min-width: 180px;
+  padding: 8px;
+  animation: dropdownIn 0.15s ease-out;
 }
 
-.dropdown-menu--right {
-  right: 0;
+@keyframes dropdownIn {
+  from {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 .dropdown-item {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
   width: 100%;
-  padding: 8px 12px;
+  padding: 10px 12px;
   background: transparent;
   border: none;
   color: var(--text);
   font-size: 14px;
+  font-weight: 500;
   cursor: pointer;
-  border-radius: 4px;
-  transition: background-color 0.15s;
+  border-radius: 6px;
+  transition: background-color 0.15s ease;
+  text-align: left;
 }
 
 .dropdown-item:hover {
-  background: var(--muted);
+  background: rgba(255, 255, 255, 0.08);
 }
 
 /* Rename popover */
 .rename-popover {
   position: absolute;
-  top: 100%;
+  top: calc(100% + 8px);
   left: 0;
-  margin-top: 4px;
   z-index: 1200;
-  background: var(--panel);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  box-shadow: var(--shadow);
-  padding: 12px;
-  min-width: 300px;
+  background: rgba(15, 20, 26, 0.98);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  padding: 16px;
+  min-width: 320px;
+  animation: dropdownIn 0.15s ease-out;
 }
 
 .rename-popover__content {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 12px;
 }
 
 .rename-input {
   width: 100%;
-  padding: 8px 12px;
-  background: var(--muted);
+  padding: 10px 14px;
+  background: rgba(255, 255, 255, 0.06);
   color: var(--text);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 6px;
   font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s ease;
 }
 
 .rename-input:focus {
   outline: none;
   border-color: var(--brand);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+  background: rgba(255, 255, 255, 0.08);
 }
 
 .rename-actions {
@@ -820,32 +898,36 @@ function exportProjectZip() {
 }
 
 .rename-error {
-  color: var(--danger);
+  color: #ff6b6b;
   font-size: 12px;
+  font-weight: 500;
 }
 
 /* Mobile menu */
+.mobile-menu-wrapper {
+  position: relative;
+}
+
+.mobile-menu-toggle {
+  display: none;
+}
+
 .mobile-menu {
   position: absolute;
-  top: 100%;
+  top: calc(100% + 8px);
   right: 0;
-  margin-top: 8px;
-  background: var(--panel);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  box-shadow: var(--shadow);
+  background: rgba(15, 20, 26, 0.98);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
   z-index: 1000;
-  min-width: 220px;
-}
-
-.mobile-menu__content {
+  min-width: 200px;
   padding: 8px;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+  animation: dropdownIn 0.15s ease-out;
 }
 
-.mobile-menu__item {
+.mobile-menu-item {
   display: flex;
   align-items: center;
   gap: 12px;
@@ -855,25 +937,15 @@ function exportProjectZip() {
   border: none;
   color: var(--text);
   font-size: 14px;
+  font-weight: 500;
   cursor: pointer;
-  border-radius: 4px;
-  transition: background-color 0.15s;
+  border-radius: 6px;
+  transition: background-color 0.15s ease;
   text-align: left;
 }
 
-.mobile-menu__item:hover {
-  background: var(--muted);
-}
-
-.mobile-menu__item--active {
-  background: color-mix(in srgb, var(--brand) 15%, var(--muted) 85%);
-  color: var(--brand);
-}
-
-.mobile-menu__divider {
-  height: 1px;
-  background: var(--border);
-  margin: 4px 0;
+.mobile-menu-item:hover {
+  background: rgba(255, 255, 255, 0.08);
 }
 
 /* Curation styling */
@@ -881,86 +953,130 @@ function exportProjectZip() {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 12px;
-  margin-left: 8px;
-}
-
-.curation-counts {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 12px;
-  margin-left: auto;
+  font-size: 11px;
+  font-weight: 600;
+  margin-left: 4px;
 }
 
 .curation-accepted {
-  color: var(--ok);
+  color: #51cf66;
 }
 
 .curation-rejected {
-  color: var(--danger);
+  color: #ff6b6b;
 }
 
-.curation-remaining {
-  color: var(--text-dim);
+/* Status */
+.status-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
-/* Status badge */
 .status-badge {
-  background: var(--muted);
-  border: 1px solid var(--border);
-  color: var(--text-dim);
-  padding: 4px 8px;
-  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.6);
+  padding: 6px 12px;
+  border-radius: 6px;
   font-size: 12px;
+  font-weight: 500;
   white-space: nowrap;
 }
 
-/* Responsive text hiding */
-@media (max-width: 1400px) {
+.curation-remaining {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+/* Responsive Design */
+@media (max-width: 1200px) {
+  .toolbar {
+    gap: 12px;
+    padding: 12px 16px;
+  }
+  
+  .toolbar-section--primary {
+    gap: 16px;
+  }
+  
+  .action-group {
+    gap: 8px;
+  }
+  
   .btn__text {
     display: none;
   }
   
   .btn--primary .btn__text,
-  .btn--accent .btn__text {
+  .btn--accent .btn__text,
+  .btn--highlight .btn__text {
     display: inline;
-  }
-  
-  .curation-badge {
-    display: none;
-  }
-  
-  .toolbar-section--project {
-    min-width: 160px;
-  }
-}
-
-@media (max-width: 1100px) {
-  .btn__text {
-    display: none;
-  }
-  
-  .toolbar-section--project {
-    min-width: 140px;
-  }
-  
-  .search-wrapper {
-    min-width: 150px;
-  }
-  
-  .project-select {
-    min-width: 120px;
   }
 }
 
 @media (max-width: 900px) {
   .toolbar {
-    gap: 6px;
+    gap: 10px;
+    padding: 10px 12px;
   }
   
-  .toolbar-section {
-    gap: 6px;
+  .toolbar-section--search {
+    max-width: 240px;
+    min-width: 160px;
+  }
+  
+  .project-select {
+    min-width: 140px;
+    max-width: 180px;
+  }
+  
+  .btn__text {
+    display: none;
+  }
+  
+  .mobile-menu-toggle {
+    display: inline-flex;
+  }
+  
+  .action-group--compact .btn:not(.mobile-menu-toggle) {
+    display: none;
+  }
+}
+
+@media (max-width: 768px) {
+  .toolbar-section--search {
+    display: none;
+  }
+  
+  .toolbar-section--secondary .action-group:first-child {
+    display: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .toolbar {
+    gap: 8px;
+    padding: 8px;
+  }
+  
+  .project-select {
+    min-width: 120px;
+    max-width: 150px;
+    font-size: 13px;
+    padding: 8px 10px;
+  }
+  
+  .btn {
+    padding: 8px 10px;
+    min-height: 36px;
+  }
+  
+  .btn--icon {
+    padding: 8px;
+    min-width: 36px;
   }
 }
 
@@ -972,5 +1088,26 @@ svg {
 /* Hide elements properly */
 .hidden {
   display: none !important;
+}
+
+/* Animation for state changes */
+.btn {
+  position: relative;
+  overflow: hidden;
+}
+
+.btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+  transition: left 0.5s;
+}
+
+.btn:hover::before {
+  left: 100%;
 }
 </style>

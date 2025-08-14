@@ -141,15 +141,15 @@ useKeyboardShortcuts({
 
 <template>
   <div class="app">
-    <header>
+    <header class="app-header">
       <div class="brand">
-        <div class="cs-logo-wrap" aria-hidden="true" style="margin-right:8px;">
-          <img src="/cs-icon.svg" alt="Caption Studio" class="cs-logo" style="width:28px;height:28px;display:block;border-radius:inherit;overflow:hidden" />
+        <div class="brand-logo">
+          <img src="/cs-icon.svg" alt="Caption Studio" class="logo" />
         </div>
-        <h1>Caption Studio</h1>
+        <h1 class="brand-title">Caption Studio</h1>
       </div>
 
-      <Toolbar :items="toolbarItems" />
+      <Toolbar />
     </header>
 
     <main>
