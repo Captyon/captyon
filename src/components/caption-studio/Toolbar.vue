@@ -1,5 +1,15 @@
 <template>
   <div class="toolbar">
+    <!-- Brand Section -->
+    <div class="toolbar-section toolbar-section--brand">
+      <div class="brand">
+        <div class="brand-logo">
+          <img src="/cs-icon.svg" alt="Caption Studio" class="logo" />
+        </div>
+        <h1 class="brand-title">Caption Studio</h1>
+      </div>
+    </div>
+
     <!-- Primary Section: Core Actions -->
     <div class="toolbar-section toolbar-section--primary">
       <!-- Project Management -->
@@ -583,8 +593,40 @@ function exportProjectZip() {
   gap: 12px;
 }
 
+.toolbar-section--brand {
+  margin-right: 20px;
+}
+
 .toolbar-section--status {
   margin-left: auto;
+}
+
+/* Brand Styles */
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.brand-logo {
+  display: flex;
+  align-items: center;
+  width: 32px;
+  height: 32px;
+}
+
+.brand-logo .logo {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.brand-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0;
+  white-space: nowrap;
 }
 
 /* Action Groups */
@@ -1094,6 +1136,20 @@ function exportProjectZip() {
   
   .action-group--compact .btn:not(.mobile-menu-toggle) {
     display: none;
+  }
+  
+  /* Brand responsive adjustments */
+  .brand-title {
+    display: none;
+  }
+  
+  .brand-logo {
+    width: 28px;
+    height: 28px;
+  }
+  
+  .toolbar-section--brand {
+    margin-right: 12px;
   }
 }
 

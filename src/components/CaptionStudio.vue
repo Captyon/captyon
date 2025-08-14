@@ -199,13 +199,6 @@ useKeyboardShortcuts({
 <template>
   <div class="app">
     <header class="app-header">
-      <div class="brand">
-        <div class="brand-logo">
-          <img src="/cs-icon.svg" alt="Caption Studio" class="logo" />
-        </div>
-        <h1 class="brand-title">Caption Studio</h1>
-      </div>
-
       <Toolbar :onNewProject="openNewProjectModal" />
     </header>
 
