@@ -203,7 +203,7 @@ useKeyboardShortcuts({
       <Toolbar :onNewProject="openNewProjectModal" />
     </header>
 
-    <main v-if="state.currentId">
+    <main>
       <aside>
         <div class="panel-head"><h3>Media</h3><span class="right badge" id="countBadge">{{ (store.getCurrentProject()?.items || []).length }}</span></div>
         <div class="project-bar">
@@ -222,18 +222,20 @@ useKeyboardShortcuts({
         <ThumbsList />
       </aside>
 
-      <Viewer />
+      <!-- Show EmptyState when no project is active, spanning viewer + editor columns -->
+      <div v-if="!state.currentId" class="empty-state-container">
+        <EmptyState 
+          :onPickFiles="openFilesInput"
+          :onPickFolder="openFolderInput" 
+          :onNewProject="openNewProjectModal" />
+      </div>
 
-      <!-- Only show Editor when there's a project with items -->
-      <Editor v-if="(store.getCurrentProject()?.items || []).length > 0" />
-    </main>
-
-    <!-- Show EmptyState when no project is active -->
-    <main v-else class="main-empty">
-      <EmptyState 
-        :onPickFiles="openFilesInput"
-        :onPickFolder="openFolderInput" 
-        :onNewProject="openNewProjectModal" />
+      <!-- Show Viewer and Editor when project is active -->
+      <template v-else>
+        <Viewer />
+        <!-- Only show Editor when there's a project with items -->
+        <Editor v-if="(store.getCurrentProject()?.items || []).length > 0" />
+      </template>
     </main>
 
     <footer>

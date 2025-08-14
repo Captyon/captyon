@@ -63,14 +63,6 @@
                   </svg>
                   Project Settings
                 </button>
-                <div class="dropdown-divider"></div>
-                <button class="dropdown-item" @click="closeCurrentProject">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                    <path d="M18 6L6 18"/>
-                    <path d="M6 6l12 12"/>
-                  </svg>
-                  Close Project
-                </button>
               </div>
             </Teleport>
           </div>
@@ -209,6 +201,14 @@
                   <path d="M10 12h4"/>
                 </svg>
                 Export as ZIP
+              </button>
+              <div class="dropdown-divider"></div>
+              <button class="dropdown-item" @click="closeCurrentProjectFromFileDropdown" :disabled="!selectedId">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <path d="M18 6L6 18"/>
+                  <path d="M6 6l12 12"/>
+                </svg>
+                Close Project
               </button>
             </div>
           </Teleport>
@@ -720,6 +720,11 @@ function exportProjectJsonFromDropdown() {
 function exportProjectZipFromDropdown() {
   fileDropdownOpen.value = false;
   exportProjectZip();
+}
+
+function closeCurrentProjectFromFileDropdown() {
+  fileDropdownOpen.value = false;
+  closeCurrentProject();
 }
 
 // Tools dropdown functions
