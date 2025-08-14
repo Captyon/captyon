@@ -1,514 +1,219 @@
 <template>
-  <nav
-    ref="containerRef"
-    class="tb"
-    role="toolbar"
-    :aria-label="ariaLabel"
-    @keydown="onKeydown"
-  >
-    <!-- Measurement rack (offscreen) used by useOverflow to cache intrinsic widths -->
-      <div class="tb__measure" aria-hidden="true">
-      <div v-for="item in itemsList" :key="(item as any).id + '-m'">
-        <div v-if="item.type === 'separator'" class="tb__sep" :data-toolbar-id="(item as any).id" />
-        <div v-else class="tb__stub" :data-toolbar-id="(item as any).id">
-          <span class="tb__icon-stub" />
-          <span class="tb__label">{{ (item as any).label ?? '' }}</span>
-        </div>
-      </div>
+  <div class="toolbar">
+    <div style="position:relative; display:inline-flex; align-items:center;">
+      <select id="projectSelect" ref="projectSelect" v-model="selectedId" @change="onProjectChange" :disabled="state.order.length === 0">
+        <option v-if="state.order.length === 0" disabled value="">{{ state.showWelcomeModal ? 'No project — use the Welcome screen' : 'No projects' }}</option>
+        <option v-for="id in state.order" :key="id" :value="id">{{ state.projects.get(id)?.name || id }}</option>
+      </select>
+      <button id="renameBtn" class="btn small" style="margin-left:8px" @click="openRenamePopover" title="Rename project">✎</button>
 
-      <!-- Overflow button stub to reserve width -->
-      <button data-overflow-button-stub class="tb__button tb__overflow-stub" aria-hidden="true"></button>
-    </div>
-
-    <!-- Left slot (custom region) -->
-    <div class="tb__region tb__region--left">
-      <slot name="left" />
-    </div>
-
-    <!-- Main rail -->
-      <div class="tb__rail" ref="railRef">
-      <template v-for="item in visibleItems" :key="(item as any).id">
-        <!-- Separator -->
-        <div v-if="item.type === 'separator'" class="tb__sep" :data-toolbar-id="(item as any).id" aria-hidden="true" />
-
-        <!-- Action -->
-        <button
-          v-else-if="item.type === 'action'"
-          :id="(item as any).id"
-          class="tb__button"
-          :class="{ 'is-disabled': (item as any).disabled }"
-          :data-toolbar-id="(item as any).id"
-          :title="(item as any).tooltip ?? (item as any).label"
-          :aria-label="(item as any).label"
-          @click="onActionClick(item as ToolbarActionItem)"
-          data-roving="true"
-        >
-          <Icon v-if="(item as any).icon" :name="String((item as any).icon)" :ariaHidden="true" />
-          <span class="tb__label">{{ (item as any).label }}</span>
-        </button>
-
-        <!-- Toggle -->
-        <button
-          v-else-if="item.type === 'toggle'"
-          :id="(item as any).id"
-          class="tb__toggle"
-          :class="{ 'is-disabled': (item as any).disabled, 'is-on': (item as any).modelValue }"
-          :data-toolbar-id="(item as any).id"
-          role="switch"
-          :aria-checked="(item as any).modelValue ? 'true' : 'false'"
-          :aria-label="(item as any).label"
-          :title="(item as any).tooltip ?? (item as any).label"
-          @click="onToggleClick(item as ToolbarToggleItem)"
-          data-roving="true"
-        >
-          <Icon v-if="(item as any).icon" :name="String((item as any).icon)" :ariaHidden="true" />
-          <span class="tb__label">{{ (item as any).label }}</span>
-        </button>
-
-        <!-- Menu (top-level) -->
-        <div v-else-if="item.type === 'menu'" class="tb__menu-wrap" :data-toolbar-id="(item as any).id">
-          <button
-            :id="(item as any).id"
-            class="tb__button tb__menu-button"
-            aria-haspopup="menu"
-            :aria-expanded="false"
-            :aria-label="(item as any).label"
-            :title="(item as any).tooltip ?? (item as any).label"
-            data-roving="true"
-          >
-            <Icon v-if="(item as any).icon" :name="String((item as any).icon)" :ariaHidden="true" />
-            <span class="tb__label">{{ (item as any).label }}</span>
+      <div id="renamePopover" v-if="showRenamePopover" @click.stop
+           style="position:absolute; z-index:1200; top:40px; left:0; background:var(--panel-bg,#0f1720); padding:10px; border-radius:8px; box-shadow:0 6px 18px rgba(0,0,0,0.6); display:flex; gap:8px; align-items:center; min-width:320px">
+        <input id="renameInput" type="text" v-model="projectName" :disabled="renaming" @keydown.enter.prevent="saveRenameFromPopover" @keydown.esc.prevent="closeRenamePopover"
+               placeholder="Project name" style="flex:1; padding:8px; border-radius:6px; background:transparent; border:1px solid rgba(255,255,255,0.06)" />
+        <div style="display:flex; gap:8px; align-items:center">
+          <button class="btn" @click="closeRenamePopover" :disabled="renaming">Cancel</button>
+          <button class="btn primary" @click="saveRenameFromPopover" :disabled="renaming">
+            <span v-if="renaming">Saving…</span>
+            <span v-else>Save</span>
           </button>
-          <!-- Submenu rendering can be added here (deferred) -->
         </div>
-
-        <!-- Fallback -->
-        <div v-else :data-toolbar-id="(item as any).id" />
-      </template>
-
-      <!-- Overflow button (always present, reserves space) -->
-      <div class="tb__overflow">
-        <button
-          class="tb__button tb__overflow-button"
-          :aria-expanded="isOverflowOpen ? 'true' : 'false'"
-          aria-haspopup="menu"
-          aria-controls="overflow-menu"
-          data-overflow-button
-          @click="toggleOverflow"
-          @keydown.stop
-          ref="overflowButtonRef"
-          :title="overflowItemsTitle"
-        >
-          <Icon name="more" :ariaHidden="true" />
-          <span class="tb__label visually-hidden">More</span>
-        </button>
-
-        <div
-          v-if="isOverflowOpen && overflowItems.length"
-          id="overflow-menu"
-          role="menu"
-          class="tb__menu"
-          ref="overflowMenuRef"
-          @keydown="onOverflowKeydown"
-        >
-          <template v-for="item in overflowItems" :key="(item as any).id + '-ovf'">
-            <button
-              v-if="item.type === 'action'"
-              class="tb__button"
-              role="menuitem"
-              :aria-label="(item as any).label"
-              @click="onActionClick(item as ToolbarActionItem)"
-            >
-              <Icon v-if="(item as any).icon" :name="String((item as any).icon)" :ariaHidden="true" />
-              <span class="tb__label">{{ (item as any).label }}</span>
-            </button>
-
-            <button
-              v-else-if="item.type === 'toggle'"
-              class="tb__toggle"
-              role="menuitem"
-              :aria-checked="(item as any).modelValue ? 'true' : 'false'"
-              @click="onToggleClick(item as ToolbarToggleItem)"
-            >
-              <Icon v-if="(item as any).icon" :name="String((item as any).icon)" :ariaHidden="true" />
-              <span class="tb__label">{{ (item as any).label }}</span>
-            </button>
-
-            <div v-else-if="item.type === 'separator'" class="tb__sep" aria-hidden="true" />
-
-            <div v-else role="menuitem">
-              <span class="tb__label">{{ (item as any).label ?? '' }}</span>
-            </div>
-          </template>
-        </div>
+        <div style="color:#ffcccc;font-size:12px;margin-left:8px" v-if="nameError">{{ nameError }}</div>
       </div>
     </div>
 
-    <!-- Right slot (custom region) -->
-    <div class="tb__region tb__region--right">
-      <slot name="right" />
+    <button class="btn" id="newProjectBtn" @click="onNewProject"><i class="icon">＋</i> New Project</button>
+    <button class="btn" id="openBtn" @click="pickFiles"><i class="icon">📁</i> Add Media+Captions</button>
+
+    <!-- hidden inputs controlled by file picker composable -->
+    <input ref="folderInput" id="folderInput" accept="image/*,video/*,.txt" multiple webkitdirectory directory type="file" class="hidden" @change="onFolderPicked" />
+    <input ref="filesInput" id="filesInput" accept="image/*,video/*,.txt" multiple type="file" class="hidden" @change="onFilesPicked" />
+    <button class="btn" id="importJsonBtn" @click="triggerJsonImport"><i class="icon">⬆</i> Import JSON</button>
+    <input ref="jsonInput" id="jsonInput" accept="application/json" class="hidden" type="file" @change="onImportJson" />
+
+    <div class="spacer"></div>
+    <input type="search" ref="searchBox" id="searchBox" v-model="state.filter.text" placeholder="Search captions or file names" style="width: 280px" />
+    <button class="btn" id="saveBtn" @click="saveProject"><i class="icon">💾</i> Save</button>
+
+    <div style="position:relative; display:inline-block;">
+      <button class="btn" id="exportBtn" @click="exportOpen = !exportOpen"><i class="icon">⬇</i> Export</button>
+      <div v-if="exportOpen" style="position:absolute; right:0; top:40px; background:var(--panel-bg,#0f1720); padding:8px; border-radius:8px; box-shadow:0 6px 18px rgba(0,0,0,0.6); z-index:1200; display:flex; gap:8px; white-space:nowrap">
+        <button class="btn" @click="exportProjectJson">JSON</button>
+        <button class="btn" @click="exportProjectZip">Zip (images + txt)</button>
+      </div>
     </div>
-  </nav>
+
+    <button class="btn primary" id="autoBtn" @click="store.autoCaptionBulk"><i class="icon">✨</i> Auto Caption</button>
+
+    <button
+      class="btn"
+      id="curationBtn"
+      :class="{ primary: state.curationMode }"
+      @click="() => { if (state.curationMode) { openCurationExitConfirm(); } else { store.startCuration(); } }"
+      title="Curation mode (swipe to accept/reject)">
+      <i class="icon">🃏</i>
+      Curation
+      <span v-if="state.curationMode" style="margin-left:8px; font-size:12px; opacity:0.9">
+        <span style="color:#7dd3a6">✓ {{ curationCounts.accepted }}</span>
+        <span style="color:#ff7b7b; margin-left:8px">✕ {{ curationCounts.rejected }}</span>
+        <span style="margin-left:8px">• {{ curationCounts.remaining }} left</span>
+      </span>
+    </button>
+
+    <button class="btn" id="projectSettingsBtn" @click="openProjectSettings"><i class="icon">🧰</i> Project Settings</button>
+    <button class="btn" id="settingsBtn" @click="openSettings"><i class="icon">⚙</i> Settings</button>
+    <button class="btn ghost" id="helpBtn" @click="openHelp"><i class="icon">❓</i> Help</button>
+
+    <span class="badge" id="statusBadge">{{ state.status }}</span>
+  </div>
 </template>
 
 <script setup lang="ts">
-import {
-  ref,
-  computed,
-  onMounted,
-  onBeforeUnmount,
-  watch,
-  nextTick,
-} from 'vue';
-import Icon from '../Icon.vue';
-import {
-  useOverflow,
-  type ToolbarItem,
-  type ToolbarActionItem,
-  type ToolbarToggleItem,
-} from '../../composables/useOverflow';
-import { useRovingTabindex } from '../../composables/useRovingTabindex';
+import { ref, watch } from 'vue';
+import { useProjectStore } from '../../store/useProjectStore';
+import { useFilePicker } from '../../composables/useFilePicker';
+import { useCuration } from '../../composables/useCuration';
 
-const props = defineProps<{
-  items?: ToolbarItem[];
-  ariaLabel?: string;
-}>();
+const store = useProjectStore();
+const { state } = store;
 
-const emit = defineEmits<{
-  (e: 'action', payload: { id: string }): void;
-  (e: 'update:modelValue', payload: { id: string; value: boolean } | boolean): void;
-}>();
+const { filesInput, folderInput, jsonInput, pickFiles, triggerJsonImport, onFilesPicked, onFolderPicked, onImportJson } = useFilePicker();
+const { curationCounts, openCurationExitConfirm } = useCuration();
 
-const ariaLabel = props.ariaLabel ?? 'Editor toolbar';
+const projectSelect = ref<HTMLSelectElement | null>(null);
+const searchBox = ref<HTMLInputElement | null>(null);
+const selectedId = ref<string | null>(state.currentId);
+watch(() => state.currentId, (v) => { selectedId.value = v; });
 
-const containerRef = ref<HTMLElement | null>(null);
-const railRef = ref<HTMLElement | null>(null);
-const overflowMenuRef = ref<HTMLElement | null>(null);
-const overflowButtonRef = ref<HTMLElement | null>(null);
+const exportOpen = ref(false);
 
-const itemsList = computed<ToolbarItem[]>(() => props.items ?? []);
+const projectName = ref('');
+const renaming = ref(false);
+const nameError = ref('');
+const showRenamePopover = ref(false);
 
-// Overflow controller
-const overflowCtrl = useOverflow(containerRef, itemsList, {
-  getPriority: (it: ToolbarItem) => {
-    return (it as any).priority ?? 0;
-  },
-  overflowButtonSelector: '[data-overflow-button], [data-overflow-button-stub]',
-});
-
-// destructure refs for template clarity
-const visibleItemsRef = overflowCtrl.visibleItems;
-const overflowItemsRef = overflowCtrl.overflowItems;
-const remeasure = overflowCtrl.remeasure;
-
-const visibleItems = computed(() => visibleItemsRef.value ?? []);
-const overflowItems = computed(() => overflowItemsRef.value ?? []);
-
-const isOverflowOpen = ref(false);
-
-const overflowItemsTitle = computed(() =>
-  (overflowItems.value.length ?? 0) ? 'More actions' : 'No extra actions'
-);
-
-// Roving tabindex
-const roving = useRovingTabindex(containerRef, { orientation: 'horizontal' });
-
-function closeOverflow() {
-  isOverflowOpen.value = false;
-  nextTick(() => overflowButtonRef.value?.focus());
+function openRenamePopover() {
+  // keep behavior simple: populate with current project name
+  projectName.value = store.getCurrentProject()?.name || '';
+  nameError.value = '';
+  renaming.value = false;
+  showRenamePopover.value = true;
+  setTimeout(() => {
+    try { (document.getElementById('renameInput') as HTMLInputElement | null)?.focus(); } catch {}
+  }, 0);
 }
 
-function toggleOverflow() {
-  isOverflowOpen.value = !isOverflowOpen.value;
-  if (isOverflowOpen.value) {
-    nextTick(() => {
-      const first = overflowMenuRef.value?.querySelector<HTMLElement>('button, [role="menuitem"]');
-      first?.focus();
-    });
-  } else {
-    nextTick(() => overflowButtonRef.value?.focus());
-  }
+function closeRenamePopover() {
+  showRenamePopover.value = false;
+  nameError.value = '';
 }
 
-function onKeydown(e: KeyboardEvent) {
-  roving.handleKeydown(e);
-  if (e.key === 'Escape') {
-    if (isOverflowOpen.value) {
-      e.stopPropagation();
-      closeOverflow();
-    }
-  }
-}
-
-function onOverflowKeydown(e: KeyboardEvent) {
-  if (e.key === 'Escape') {
-    e.preventDefault();
-    closeOverflow();
+async function saveRenameFromPopover() {
+  const proj = store.getCurrentProject();
+  if (!proj) return;
+  const name = projectName.value?.trim();
+  nameError.value = '';
+  if (!name) {
+    nameError.value = 'Project name required';
     return;
   }
-  roving.handleKeydown(e);
-}
+  if (name.length > 100) {
+    nameError.value = 'Name too long (max 100 characters)';
+    return;
+  }
+  const duplicate = state.order.some(id => id !== proj.id && (state.projects.get(id)?.name || '').toLowerCase() === name.toLowerCase());
+  if (duplicate) {
+    nameError.value = 'Another project already uses this name';
+    return;
+  }
 
-function onActionClick(item: ToolbarActionItem) {
-  if ((item as any).disabled) return;
-  emit('action', { id: item.id });
-  item.onClick?.();
-}
-
-function onToggleClick(item: ToolbarToggleItem) {
-  if ((item as any).disabled) return;
-  const next = !item.modelValue;
-  item.onUpdate?.(next);
-  emit('update:modelValue', { id: item.id, value: next });
-}
-
-// Close overflow on outside click
-function onDocumentClick(e: MouseEvent) {
-  const target = e.target as Node | null;
-  if (!target) return;
-  if (isOverflowOpen.value) {
-    const menu = overflowMenuRef.value;
-    const btn = overflowButtonRef.value;
-    if (menu && !menu.contains(target) && btn && !btn.contains(target)) {
-      closeOverflow();
-    }
+  const prevName = proj.name;
+  proj.name = name;
+  proj.updatedAt = Date.now();
+  renaming.value = true;
+  try {
+    await store.saveCurrentProject();
+    store.addToast('Project renamed', 'ok');
+    showRenamePopover.value = false;
+  } catch (e) {
+    // eslint-disable-next-line no-console
+    console.error('saveRenameFromPopover failed', e);
+    proj.name = prevName;
+    store.addToast('Failed to rename project', 'warn');
+    nameError.value = 'Save failed';
+  } finally {
+    renaming.value = false;
   }
 }
 
-onMounted(() => {
-  window.addEventListener('click', onDocumentClick);
-  nextTick(() => {
-    roving.setTabindexes();
-    remeasure();
+function onProjectChange(e: Event) {
+  const val = (e.target as HTMLSelectElement).value;
+  if (!val) return;
+  const prevId = state.currentId;
+  store.refreshMetaBar().then(async () => {
+    try {
+      const proj = await store.loadProjectById(val);
+      if (proj) {
+        store.setCurrentProject(proj);
+      } else {
+        state.currentId = prevId;
+        store.addToast('Failed to load project; reverted selection', 'warn');
+        console.warn('onProjectChange: project not found after loadProjectById', val);
+      }
+    } catch (err) {
+      console.error('onProjectChange loadProjectById failed', err);
+      state.currentId = prevId;
+      store.addToast('Failed to load project; reverted selection', 'warn');
+    }
+  }).catch(err => {
+    console.error('onProjectChange refreshMetaBar failed', err);
+    state.currentId = prevId;
+    store.addToast('Failed to refresh project list; reverted selection', 'warn');
   });
-});
+}
 
-onBeforeUnmount(() => {
-  window.removeEventListener('click', onDocumentClick);
-});
+async function onNewProject() {
+  const name = prompt('Project name?') || 'Untitled';
+  store.createProject(name);
+  try { await (store.saveCurrentProject?.()); } catch (e) { console.error('Failed to save new project', e); }
+  try { await store.refreshMetaBar(); } catch (e) { console.error(e); }
+}
 
-watch(
-  () => props.items,
-  () => {
-    nextTick(() => remeasure());
-  },
-  { deep: true }
-);
+function openProjectSettings() {
+  const el = document.getElementById('projectSettingsModal') as HTMLDialogElement | null;
+  el?.showModal();
+}
+
+function openSettings() {
+  const el = document.getElementById('settingsModal') as HTMLDialogElement | null;
+  el?.showModal();
+}
+
+function openHelp() {
+  const el = document.getElementById('helpModal') as HTMLDialogElement | null;
+  el?.showModal();
+}
+
+function saveProject() {
+  store.saveCurrentProject();
+}
+
+function exportProjectJson() {
+  try {
+    store.exportProject();
+  } catch (e) {
+    console.error('exportProjectJson failed', e);
+  } finally {
+    exportOpen.value = false;
+  }
+}
+function exportProjectZip() {
+  try {
+    (store as any).exportProjectZip?.();
+  } catch (e) {
+    console.error('exportProjectZip failed', e);
+  } finally {
+    exportOpen.value = false;
+  }
+}
 </script>
-
-<style scoped>
-/* Toolbar variables */
-:root {
-  --tb-height: clamp(40px, 5vw, 56px);
-  --tb-gap: clamp(4px, 1.2vw, 10px);
-  --tb-pad-x: clamp(8px, 2.5vw, 16px);
-  --tb-radius: 10px;
-  --tb-border: 1px;
-  --tb-bg: #ffffff;
-  --tb-ink: #111827;
-  --tb-muted: #6b7280;
-  --tb-accent: #2563eb;
-  --tb-shadow: 0 1px 2px rgba(0,0,0,0.04);
-}
-
-/* Core layout: grid with auto-flow column */
-.tb {
-  display: grid;
-  grid-auto-flow: column;
-  grid-auto-columns: 1fr;
-  align-items: center;
-  gap: var(--tb-gap);
-  padding: 6px;
-  padding-inline: max(var(--tb-pad-x), env(safe-area-inset-left));
-  padding-inline-end: max(var(--tb-pad-x), env(safe-area-inset-right));
-  background: var(--tb-bg);
-  color: var(--tb-ink);
-  border-radius: var(--tb-radius);
-  box-shadow: var(--tb-shadow);
-  user-select: none;
-  width: 100%;
-  box-sizing: border-box;
-}
-
-/* Regions */
-.tb__region {
-  display: flex;
-  align-items: center;
-  gap: var(--tb-gap);
-}
-.tb__region--left {
-  justify-content: flex-start;
-  min-width: 0;
-}
-.tb__region--right {
-  justify-content: flex-end;
-  min-width: 0;
-}
-
-/* The main rail holds items + overflow */
-.tb__rail {
-  display: inline-grid;
-  grid-auto-flow: column;
-  grid-auto-columns: max-content;
-  align-items: center;
-  gap: var(--tb-gap);
-  min-width: 0;
-}
-
-/* Measurement rack (offscreen) */
-.tb__measure {
-  position: absolute;
-  left: -9999px;
-  top: -9999px;
-  width: auto;
-  height: auto;
-  visibility: hidden;
-  pointer-events: none;
-  overflow: hidden;
-}
-
-/* Item primitives */
-.tb__item {
-  min-width: 40px;
-  min-height: 40px;
-}
-
-.tb__button,
-.tb__toggle,
-.tb__menu-button {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  height: var(--tb-height);
-  padding: 0 10px;
-  border-radius: 8px;
-  border: var(--tb-border) solid transparent;
-  background: transparent;
-  color: inherit;
-  cursor: pointer;
-  font: inherit;
-  line-height: 1;
-  min-width: 40px;
-  min-height: 40px;
-}
-
-.tb__button:focus,
-.tb__toggle:focus,
-.tb__menu-button:focus {
-  outline: none;
-  box-shadow: 0 0 0 3px rgba(37,99,235,0.18);
-  border-color: rgba(37,99,235,0.2);
-}
-
-/* Disabled */
-.is-disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
-  pointer-events: none;
-}
-
-/* Toggle state */
-.tb__toggle.is-on {
-  background: rgba(37,99,235,0.06);
-  color: var(--tb-accent);
-}
-
-/* Separator */
-.tb__sep {
-  width: 1px;
-  height: 24px;
-  background: var(--tb-border-color, #e5e7eb);
-  margin-inline: 6px;
-  align-self: center;
-}
-
-/* Overflow area */
-.tb__overflow {
-  position: relative;
-}
-.tb__menu {
-  position: absolute;
-  right: 0;
-  top: calc(100% + 6px);
-  background: var(--tb-bg);
-  border-radius: 8px;
-  box-shadow: 0 6px 18px rgba(0,0,0,0.12);
-  padding: 8px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  min-width: 160px;
-  z-index: 50;
-}
-
-/* Labels hidden for compact items (via media queries) */
-.tb__label {
-  font-size: 14px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-/* Visually hidden helper */
-.visually-hidden {
-  position: absolute !important;
-  width: 1px !important;
-  height: 1px !important;
-  padding: 0 !important;
-  margin: -1px !important;
-  overflow: hidden !important;
-  clip: rect(0 0 0 0) !important;
-  white-space: nowrap !important;
-  border: 0 !important;
-}
-
-/* Tooltips (simple) */
-[role="tooltip"] {
-  position: absolute;
-  background: #111827;
-  color: #fff;
-  padding: 6px 8px;
-  border-radius: 6px;
-  font-size: 12px;
-  z-index: 60;
-  transform-origin: top center;
-  transition: opacity 120ms ease;
-}
-
-/* Icon sizing */
-.tb__button svg,
-.tb__toggle svg,
-.tb__menu-button svg {
-  width: clamp(20px, 3.5vw, 22px);
-  height: clamp(20px, 3.5vw, 22px);
-  display: block;
-}
-
-/* Responsive behaviors */
-/* ≥1280 keep labels visible */
-@media (min-width: 1280px) {
-  .tb__label { display: inline; }
-}
-
-/* ≥1024 keep most labels visible */
-@media (min-width: 1024px) and (max-width: 1279px) {
-  .tb__label { display: inline; }
-}
-
-/* ≥768 compact: hide labels for low-priority via attribute? 
-   For simplicity, hide labels when container is small - spacing via clamp handles many cases */
-@media (max-width: 1023px) {
-  .tb__button .tb__label { display: none; }
-  .tb__toggle.is-on .tb__label { display: inline; }
-}
-
-/* Tiny screens - icons only for low priorities; keep primary visible until 360px then icon-only */
-@media (max-width: 360px) {
-  .tb__button .tb__label { display: none; }
-}
-
-/* Reduced motion */
-@media (prefers-reduced-motion: reduce) {
-  * { transition: none !important; }
-}
-</style>

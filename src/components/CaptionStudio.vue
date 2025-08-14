@@ -16,7 +16,7 @@ import { useKeyboardShortcuts } from '../composables/useKeyboardShortcuts';
 import { useCuration } from '../composables/useCuration';
 import { useFilePicker } from '../composables/useFilePicker';
 import Toasts from './Toasts.vue';
-import type { ToolbarItem } from '../composables/useOverflow';
+import type { ToolbarItem } from './caption-studio/toolbar-types';
 
 const store = useProjectStore();
 const { state } = store;
