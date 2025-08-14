@@ -445,7 +445,11 @@ function onProjectChange(e: Event) {
 }
 
 async function onNewProject() {
-  const name = prompt('Project name?') || 'Untitled';
+  // Respect prompt cancellation: prompt() returns null when the user cancels.
+  const resp = prompt('Project name?');
+  if (resp === null) return; // user cancelled — do not create a project
+
+  const name = (resp || '').trim() || 'Untitled';
   store.createProject(name);
   try { await (store.saveCurrentProject?.()); } catch (e) { console.error('Failed to save new project', e); }
   try { await store.refreshMetaBar(); } catch (e) { console.error(e); }
