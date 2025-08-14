@@ -241,17 +241,21 @@
     </div>
 
     <!-- Hidden file inputs -->
-    <input ref="folderInput" accept="image/*,video/*,.txt" multiple webkitdirectory directory type="file" class="hidden" @change="onFolderPicked" />
-    <input ref="filesInput" accept="image/*,video/*,.txt" multiple type="file" class="hidden" @change="onFilesPicked" />
-    <input ref="jsonInput" accept="application/json" class="hidden" type="file" @change="onImportJson" />
+    <input id="folderInput" ref="folderInput" accept="image/*,video/*,.txt" multiple webkitdirectory directory type="file" class="hidden" @change="onFolderPicked" />
+    <input id="filesInput" ref="filesInput" accept="image/*,video/*,.txt" multiple type="file" class="hidden" @change="onFilesPicked" />
+    <input id="jsonInput" ref="jsonInput" accept="application/json" class="hidden" type="file" @change="onImportJson" />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, watch, onMounted, onUnmounted, nextTick } from 'vue';
+import { ref, watch, computed, onMounted, onUnmounted, nextTick } from 'vue';
 import { useProjectStore } from '../../store/useProjectStore';
 import { useFilePicker } from '../../composables/useFilePicker';
 import { useCuration } from '../../composables/useCuration';
+
+const props = defineProps<{
+  onNewProject?: () => void;
+}>();
 
 const store = useProjectStore();
 const { state } = store;
@@ -440,6 +444,13 @@ function onProjectChange(e: Event) {
 }
 
 async function onNewProject() {
+  // Use the provided onNewProject prop if available, otherwise fallback to prompt
+  if (props.onNewProject) {
+    props.onNewProject();
+    return;
+  }
+
+  // Fallback to prompt if no prop is provided
   const resp = prompt('Project name?');
   if (resp === null) return; // user cancelled
   

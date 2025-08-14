@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted } from 'vue';
+import { ref, onMounted, onUnmounted } from 'vue';
 import { useProjectStore } from '../store/useProjectStore';
 import Toolbar from './caption-studio/Toolbar.vue';
 import ThumbsList from './caption-studio/ThumbsList.vue';
@@ -12,6 +12,7 @@ import BulkModal from './caption-studio/modals/BulkModal.vue';
 import DeleteConfirm from './caption-studio/modals/DeleteConfirm.vue';
 import HelpModal from './caption-studio/modals/HelpModal.vue';
 import WelcomeModal from './caption-studio/modals/WelcomeModal.vue';
+import NewProjectModal from './caption-studio/modals/NewProjectModal.vue';
 import { useKeyboardShortcuts } from '../composables/useKeyboardShortcuts';
 import { useCuration } from '../composables/useCuration';
 import { useFilePicker } from '../composables/useFilePicker';
@@ -20,6 +21,22 @@ import type { ToolbarItem } from './caption-studio/toolbar-types';
 
 const store = useProjectStore();
 const { state } = store;
+
+// Modal state management
+const showNewProjectModal = ref(false);
+
+// Modal handlers
+function openNewProjectModal() {
+  showNewProjectModal.value = true;
+}
+
+function closeNewProjectModal() {
+  showNewProjectModal.value = false;
+}
+
+function onNewProjectCreated() {
+  showNewProjectModal.value = false;
+}
 
 // lightweight handlers used by keyboard shortcuts composable
 function applyEditsSafe() {
@@ -71,6 +88,22 @@ function openFilesInput() {
 }
 function openBulkModal() {
   try { (document.getElementById('bulkModal') as HTMLDialogElement | null)?.showModal(); } catch {}
+}
+
+function clearList() {
+  try {
+    const proj = store.getCurrentProject?.();
+    if (!proj) {
+      (store as any).addToast?.('No project selected', 'warn');
+      return;
+    }
+    (store as any).clearList?.();
+    const res = (store as any).saveCurrentProject?.();
+    if (res && typeof res.then === 'function') res.catch((e: any) => console.error('saveCurrentProject failed', e));
+    (store as any).addToast?.('Cleared media list', 'ok');
+  } catch (e) {
+    console.error('clearList handler failed', e);
+  }
 }
 
 // wire keyboard shortcuts
@@ -149,7 +182,7 @@ useKeyboardShortcuts({
         <h1 class="brand-title">Caption Studio</h1>
       </div>
 
-      <Toolbar />
+      <Toolbar :onNewProject="openNewProjectModal" />
     </header>
 
     <main>
@@ -159,7 +192,7 @@ useKeyboardShortcuts({
           <div class="seg" role="group" aria-label="select source" style="display:flex;gap:6px">
             <button class="btn small" id="pickFolderBtn" @click="openFolderInput">Pick Folder</button>
             <button class="btn small" id="pickFilesBtn" @click="openFilesInput">Pick Files</button>
-            <button class="btn small" id="clearListBtn" @click="store.clearList">Clear</button>
+            <button class="btn small" id="clearListBtn" @click="clearList">Clear</button>
           </div>
           <div class="controls-row">
             <label><input type="checkbox" v-model="state.filter.onlyMissing"> Only missing captions</label>
@@ -199,6 +232,7 @@ useKeyboardShortcuts({
     <BulkModal />
     <DeleteConfirm />
     <HelpModal />
-    <WelcomeModal />
+    <WelcomeModal :onNewProject="openNewProjectModal" />
+    <NewProjectModal :show="showNewProjectModal" @close="closeNewProjectModal" @create="onNewProjectCreated" />
   </div>
 </template>
