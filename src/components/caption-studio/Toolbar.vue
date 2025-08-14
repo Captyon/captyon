@@ -132,7 +132,7 @@
 
         <!-- Export Dropdown -->
         <div class="dropdown-wrapper" ref="exportDropdownRef">
-          <button class="btn btn--ghost" @click="toggleExportDropdown" title="Export project">
+          <button ref="exportBtnRef" class="btn btn--ghost" @click="toggleExportDropdown" title="Export project">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M21 9v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9"/>
               <polyline points="7,14 12,9 17,14"/>
@@ -143,25 +143,32 @@
               <polyline points="6,9 12,15 18,9"/>
             </svg>
           </button>
-          <div v-if="exportOpen" class="dropdown-menu">
-            <button class="dropdown-item" @click="exportProjectJson">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                <polyline points="14,2 14,8 20,8"/>
-              </svg>
-              Export as JSON
-            </button>
-            <button class="dropdown-item" @click="exportProjectZip">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                <path d="M16 22h2a2 2 0 0 0 2-2V7.5L14.5 2H6a2 2 0 0 0-2 2v3"/>
-                <polyline points="14,2 14,8 20,8"/>
-                <path d="M10 20v-1a2 2 0 1 1 4 0v1a2 2 0 1 1-4 0Z"/>
-                <path d="M10 7h4"/>
-                <path d="M10 12h4"/>
-              </svg>
-              Export as ZIP
-            </button>
-          </div>
+          <Teleport to="body">
+            <div
+              v-if="exportOpen"
+              ref="exportMenuRef"
+              class="dropdown-menu dropdown-menu--floating"
+              :style="{ top: exportMenuPos.top + 'px', left: exportMenuPos.left + 'px' }"
+            >
+              <button class="dropdown-item" @click="exportProjectJson">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                  <polyline points="14,2 14,8 20,8"/>
+                </svg>
+                Export as JSON
+              </button>
+              <button class="dropdown-item" @click="exportProjectZip">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <path d="M16 22h2a2 2 0 0 0 2-2V7.5L14.5 2H6a2 2 0 0 0-2 2v3"/>
+                  <polyline points="14,2 14,8 20,8"/>
+                  <path d="M10 20v-1a2 2 0 1 1 4 0v1a2 2 0 1 1-4 0Z"/>
+                  <path d="M10 7h4"/>
+                  <path d="M10 12h4"/>
+                </svg>
+                Export as ZIP
+              </button>
+            </div>
+          </Teleport>
         </div>
       </div>
 
@@ -256,6 +263,9 @@ const { curationCounts, openCurationExitConfirm } = useCuration();
 const selectedId = ref<string | null>(state.currentId);
 const exportOpen = ref(false);
 const mobileMenuOpen = ref(false);
+const exportBtnRef = ref<HTMLElement | null>(null);
+const exportMenuRef = ref<HTMLElement | null>(null);
+const exportMenuPos = ref({ top: 0, left: 0 });
 
 // Rename functionality
 const projectName = ref('');
@@ -271,12 +281,27 @@ const exportDropdownRef = ref<HTMLElement | null>(null);
 // Watchers
 watch(() => state.currentId, (v) => { selectedId.value = v; });
 
+function positionExportMenu() {
+  const anchor = exportBtnRef.value || exportDropdownRef.value;
+  if (!anchor) return;
+  const rect = anchor.getBoundingClientRect();
+  const menuW = exportMenuRef.value?.offsetWidth ?? 200;
+  exportMenuPos.value.top = Math.round(rect.bottom + 8);
+  exportMenuPos.value.left = Math.round(rect.right - menuW);
+}
+
+function onReposition() {
+  if (exportOpen.value) positionExportMenu();
+}
+
 // Event handlers for closing dropdowns
 function handleClickOutside(e: Event) {
   const target = e.target as Element;
   
   // Close export dropdown
-  if (exportOpen.value && !exportDropdownRef.value?.contains(target)) {
+  if (exportOpen.value 
+      && !exportDropdownRef.value?.contains(target)
+      && !exportMenuRef.value?.contains(target)) {
     exportOpen.value = false;
   }
   
@@ -315,11 +340,15 @@ function handleKeydown(e: KeyboardEvent) {
 onMounted(() => {
   document.addEventListener('click', handleClickOutside);
   document.addEventListener('keydown', handleKeydown);
+  window.addEventListener('resize', onReposition);
+  window.addEventListener('scroll', onReposition, true); // capture scroll on ancestors
 });
 
 onUnmounted(() => {
   document.removeEventListener('click', handleClickOutside);
   document.removeEventListener('keydown', handleKeydown);
+  window.removeEventListener('resize', onReposition);
+  window.removeEventListener('scroll', onReposition, true);
 });
 
 // Project management functions
@@ -433,6 +462,7 @@ async function onNewProject() {
 // UI state functions
 function toggleExportDropdown() {
   exportOpen.value = !exportOpen.value;
+  if (exportOpen.value) nextTick(positionExportMenu);
 }
 
 function toggleMobileMenu() {
@@ -510,6 +540,7 @@ function exportProjectZip() {
   min-height: 64px;
   position: relative;
   overflow-x: auto;
+  overflow-y: visible;
   scrollbar-width: none;
   -ms-overflow-style: none;
 }
@@ -812,10 +843,19 @@ function exportProjectZip() {
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 8px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-  z-index: 1000;
+  z-index: 10000;
   min-width: 180px;
   padding: 8px;
   animation: dropdownIn 0.15s ease-out;
+}
+
+/* Escape stacking-context jail */
+.dropdown-menu--floating {
+  position: fixed;
+  z-index: 2147483647;
+  width: auto;
+  min-width: 180px;
+  max-width: 250px;
 }
 
 @keyframes dropdownIn {
@@ -921,7 +961,7 @@ function exportProjectZip() {
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 8px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-  z-index: 1000;
+  z-index: 10000;
   min-width: 200px;
   padding: 8px;
   animation: dropdownIn 0.15s ease-out;
@@ -1109,5 +1149,57 @@ svg {
 
 .btn:hover::before {
   left: 100%;
+}
+</style>
+
+<style>
+/* Global styles for teleported dropdown to escape CSS scoping */
+.dropdown-menu--floating {
+  background: rgba(15, 20, 26, 0.98) !important;
+  backdrop-filter: blur(12px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  border-radius: 8px !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3) !important;
+  padding: 8px !important;
+  animation: dropdownIn 0.15s ease-out !important;
+  font-family: inherit !important;
+}
+
+.dropdown-menu--floating .dropdown-item {
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+  width: 100% !important;
+  padding: 10px 12px !important;
+  background: transparent !important;
+  border: none !important;
+  color: rgba(255, 255, 255, 0.9) !important;
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  cursor: pointer !important;
+  border-radius: 6px !important;
+  transition: background-color 0.15s ease !important;
+  text-align: left !important;
+  white-space: nowrap !important;
+}
+
+.dropdown-menu--floating .dropdown-item:hover {
+  background: rgba(255, 255, 255, 0.08) !important;
+}
+
+.dropdown-menu--floating svg {
+  flex-shrink: 0 !important;
+  stroke: currentColor !important;
+}
+
+@keyframes dropdownIn {
+  from {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 </style>
