@@ -4,74 +4,82 @@
     <div v-if="selectedRegion" class="region-editor">
       <div class="editor-header">
         <div class="header-info">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="region-icon">
-            <rect x="3" y="3" width="18" height="14" rx="2" ry="2"/>
-            <path d="m5 17 2-2 4 4 8-8"/>
-          </svg>
-          <h3 class="editor-title">Region Editor</h3>
+          <div class="header-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="18" height="14" rx="2" ry="2"/>
+              <path d="m5 17 2-2 4 4 8-8"/>
+            </svg>
+          </div>
+          <div class="header-text">
+            <h3 class="editor-title">Region Editor</h3>
+            <p class="editor-subtitle">Edit captions for selected region</p>
+          </div>
         </div>
         <div class="header-actions">
           <button class="btn btn--success" @click="applyRegionEdits" title="Save region changes">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <polyline points="20,6 9,17 4,12"/>
             </svg>
             <span class="btn__text">Save Region</span>
           </button>
           <button class="btn btn--ghost" @click="clearRegionSelection" title="Cancel region editing">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <line x1="18" y1="6" x2="6" y2="18"/>
               <line x1="6" y1="6" x2="18" y2="18"/>
             </svg>
-            <span class="btn__text">Cancel</span>
           </button>
         </div>
       </div>
 
-      <div class="editor-content">
-        <div class="field-group">
-          <label class="field-label">Region Title</label>
-          <input
-            type="text"
-            v-model="regionTitle"
-            placeholder="Enter a descriptive title for this region"
-            class="title-input"
-          />
+      <div class="editor-body">
+        <div class="input-group">
+          <label class="input-label">Region Title</label>
+          <div class="input-wrapper">
+            <input
+              type="text"
+              v-model="regionTitle"
+              placeholder="Enter a descriptive title for this region"
+              class="text-input"
+            />
+          </div>
         </div>
 
-        <div class="field-group field-group--main">
-          <label class="field-label">Region Caption</label>
-          <textarea
-            v-model="regionCaption"
-            placeholder="Describe what you see in this region..."
-            class="caption-textarea"
-            rows="8"
-          ></textarea>
+        <div class="input-group input-group--main">
+          <label class="input-label">Region Caption</label>
+          <div class="input-wrapper">
+            <textarea
+              v-model="regionCaption"
+              placeholder="Describe what you see in this region..."
+              class="caption-textarea"
+              rows="8"
+            ></textarea>
+          </div>
         </div>
 
-        <div class="editor-stats">
-          <div class="stats-info">
-            <span class="stat-item">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <div class="stats-bar">
+          <div class="stats-row">
+            <div class="stat">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
                 <polyline points="14,2 14,8 20,8"/>
               </svg>
-              {{ regionCaption.length }} characters
-            </span>
-            <span class="stat-item">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <span>{{ regionCaption.length }} chars</span>
+            </div>
+            <div class="stat">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M2 12h20"/>
                 <path d="M8 18V6"/>
                 <path d="M16 6v12"/>
               </svg>
-              {{ (regionCaption.trim().match(/\S+/g) || []).length }} words
-            </span>
-            <span class="stat-item">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <span>{{ (regionCaption.trim().match(/\S+/g) || []).length }} words</span>
+            </div>
+            <div class="stat">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M9 12l2 2 4-4"/>
                 <circle cx="12" cy="12" r="10"/>
               </svg>
-              ~{{ Math.ceil(regionCaption.length/4) }} tokens
-            </span>
+              <span>~{{ Math.ceil(regionCaption.length/4) }} tokens</span>
+            </div>
           </div>
         </div>
       </div>
@@ -81,15 +89,19 @@
     <div v-else class="item-editor">
       <div class="editor-header">
         <div class="header-info">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="editor-icon">
-            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-            <path d="m18.5 2.5 a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-          </svg>
-          <h3 class="editor-title">Caption Editor</h3>
+          <div class="header-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+              <path d="m18.5 2.5 a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+            </svg>
+          </div>
+          <div class="header-text">
+            <h3 class="editor-title">Caption Editor</h3>
+          </div>
         </div>
         <div class="header-actions">
           <button class="btn btn--primary" @click="applyEdits" title="Save caption and tags (Alt+S)">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
               <polyline points="17,21 17,13 7,13 7,21"/>
               <polyline points="7,3 7,8 15,8"/>
@@ -99,36 +111,43 @@
         </div>
       </div>
 
-      <!-- Action Toolbar -->
-      <div class="editor-toolbar">
-        <div class="toolbar-group toolbar-group--primary">
-          <button class="btn btn--highlight" @click="store.autoCaptionCurrent" title="Generate caption with AI (Alt+G)">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/>
-            </svg>
-            <span class="btn__text">AI Generate</span>
-          </button>
-
-          <button class="btn btn--ghost" @click="copyFromFile" title="Copy caption from associated text file">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
-              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
-            </svg>
-            <span class="btn__text">Copy From File</span>
-          </button>
-
-          <button class="btn btn--ghost" @click="clearCaption" title="Clear current caption">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <polyline points="3,6 5,6 21,6"/>
-              <path d="m19,6v14a2,2 0 0,1-2,2H7a2,2 0 0,1-2-2V6m3,0V4a2,2 0 0,1 2-2h4a2,2 0 0,1 2,2v2"/>
-            </svg>
-            <span class="btn__text">Clear</span>
+      <!-- AI and Action Toolbar -->
+      <div class="ai-toolbar">
+        <div class="ai-section">
+          <button class="btn btn--ai" @click="store.autoCaptionCurrent" title="Generate caption with AI (Alt+G)">
+            <div class="btn-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/>
+              </svg>
+            </div>
+            <div class="btn-content">
+              <span class="btn-title">AI Generate</span>
+              <span class="btn-subtitle">Create caption automatically</span>
+            </div>
           </button>
         </div>
 
-        <div class="toolbar-group toolbar-group--secondary">
+        <div class="actions-section">
+          <div class="action-group">
+            <button class="btn btn--secondary" @click="copyFromFile" title="Copy caption from associated text file">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+              </svg>
+              <span class="btn__text">Copy From File</span>
+            </button>
+
+            <button class="btn btn--secondary" @click="clearCaption" title="Clear current caption">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="3,6 5,6 21,6"/>
+                <path d="m19,6v14a2,2 0 0,1-2,2H7a2,2 0 0,1-2-2V6m3,0V4a2,2 0 0,1 2-2h4a2,2 0 0,1 2,2v2"/>
+              </svg>
+              <span class="btn__text">Clear</span>
+            </button>
+          </div>
+
           <button class="btn btn--danger" @click="confirmDelete" title="Remove this item from project (Alt+D)">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <polyline points="3,6 5,6 21,6"/>
               <path d="m19,6v14a2,2 0 0,1-2,2H7a2,2 0 0,1-2-2V6m3,0V4a2,2 0 0,1 2-2h4a2,2 0 0,1 2,2v2"/>
               <line x1="10" y1="11" x2="10" y2="17"/>
@@ -137,68 +156,75 @@
             <span class="btn__text">Remove</span>
           </button>
         </div>
+      </div>
 
-        <div class="toolbar-group toolbar-group--tags">
-          <div class="tags-control">
-            <label class="tags-label">Tags</label>
+      <!-- Tags Input -->
+      <div class="tags-section">
+        <div class="input-group">
+          <label class="input-label">Tags</label>
+          <div class="input-wrapper">
             <input 
               type="text" 
               id="tagInput" 
               v-model="tagInput" 
-              placeholder="tag1, tag2, tag3..." 
-              class="tags-input"
+              placeholder="Enter comma-separated tags (e.g., portrait, outdoor, sunset)"
+              class="text-input tags-input"
               title="Enter comma-separated tags"
             />
           </div>
         </div>
       </div>
 
-      <!-- Main Textarea -->
-      <div class="editor-content">
-        <div class="field-group field-group--main">
-          <textarea 
-            id="captionBox" 
-            v-model="captionBox" 
-            placeholder="Describe what you see in this image..."
-            class="caption-textarea"
-            rows="12"
-          ></textarea>
+      <!-- Main Caption Editor -->
+      <div class="editor-body">
+        <div class="input-group input-group--main">
+          <label class="input-label">Caption</label>
+          <div class="input-wrapper">
+            <textarea 
+              id="captionBox" 
+              v-model="captionBox" 
+              placeholder="Describe what you see in this image..."
+              class="caption-textarea"
+              rows="10"
+            ></textarea>
+          </div>
         </div>
 
-        <!-- Enhanced Footer with Tags and Stats -->
-        <div class="editor-footer">
-          <div class="tags-display" v-if="(currentItem?.tags || []).length > 0">
-            <div class="tags-label-small">Active Tags:</div>
-            <div class="tags-list">
-              <span v-for="tag in currentItem?.tags || []" :key="tag" class="tag-chip">
-                {{ tag }}
-              </span>
+        <!-- Active Tags Display -->
+        <div class="tags-display" v-if="(currentItem?.tags || []).length > 0">
+          <div class="tags-label">Active Tags</div>
+          <div class="tags-list">
+            <div v-for="tag in currentItem?.tags || []" :key="tag" class="tag-chip">
+              <span class="tag-text">{{ tag }}</span>
             </div>
           </div>
-          
-          <div class="stats-info">
-            <span class="stat-item">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        </div>
+
+        <!-- Stats Footer -->
+        <div class="stats-bar">
+          <div class="stats-row">
+            <div class="stat">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
                 <polyline points="14,2 14,8 20,8"/>
               </svg>
-              {{ captionBox.length }} characters
-            </span>
-            <span class="stat-item">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <span>{{ captionBox.length }} characters</span>
+            </div>
+            <div class="stat">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M2 12h20"/>
                 <path d="M8 18V6"/>
                 <path d="M16 6v12"/>
               </svg>
-              {{ (captionBox.trim().match(/\S+/g) || []).length }} words
-            </span>
-            <span class="stat-item">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <span>{{ (captionBox.trim().match(/\S+/g) || []).length }} words</span>
+            </div>
+            <div class="stat">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M9 12l2 2 4-4"/>
                 <circle cx="12" cy="12" r="10"/>
               </svg>
-              ~{{ Math.ceil(captionBox.length/4) }} tokens
-            </span>
+              <span>~{{ Math.ceil(captionBox.length/4) }} tokens</span>
+            </div>
           </div>
         </div>
       </div>
@@ -322,30 +348,52 @@ function doDelete() {
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  padding: 16px 20px;
-  background: linear-gradient(180deg, 
-    rgba(255, 255, 255, 0.06) 0%, 
-    rgba(255, 255, 255, 0.02) 100%
+  padding: 20px 24px;
+  background: linear-gradient(135deg, 
+    rgba(255, 255, 255, 0.08) 0%, 
+    rgba(255, 255, 255, 0.03) 100%
   );
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
 }
 
 .header-info {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 16px;
 }
 
-.region-icon, .editor-icon {
-  color: var(--brand);
+.header-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  background: linear-gradient(135deg, var(--brand), var(--accent));
+  border-radius: 12px;
+  color: white;
   flex-shrink: 0;
+}
+
+.header-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
 .editor-title {
   margin: 0;
-  font-size: 16px;
-  font-weight: 600;
+  font-size: 18px;
+  font-weight: 700;
   color: var(--text);
+  line-height: 1.2;
+}
+
+.editor-subtitle {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-dim);
+  font-weight: 500;
+  opacity: 0.8;
 }
 
 .header-actions {
@@ -354,36 +402,159 @@ function doDelete() {
   flex-shrink: 0;
 }
 
-/* Editor Toolbar */
-.editor-toolbar {
+/* AI Toolbar */
+.ai-toolbar {
   display: flex;
-  align-items: center;
+  align-items: stretch;
   gap: 16px;
-  padding: 12px 20px;
-  background: rgba(255, 255, 255, 0.02);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  padding: 16px 24px;
+  background: linear-gradient(90deg, 
+    rgba(139, 92, 246, 0.04) 0%, 
+    rgba(99, 102, 241, 0.02) 100%
+  );
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   flex-wrap: wrap;
 }
 
-.toolbar-group {
+.ai-section {
+  flex: 1;
+  min-width: 0;
+}
+
+.actions-section {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
   flex-shrink: 0;
+  flex-wrap: wrap;
 }
 
-.toolbar-group--primary {
+.action-group {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* Tags Section */
+.tags-section {
+  padding: 16px 24px;
+  background: rgba(255, 255, 255, 0.02);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+/* Editor Body */
+.editor-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 24px;
+  gap: 20px;
+  min-height: 0;
+}
+
+/* Input Groups */
+.input-group {
+  display: flex;
+  flex-direction: column;
   gap: 8px;
 }
 
-.toolbar-group--secondary {
-  margin-left: auto;
+.input-group--main {
+  flex: 1;
+  min-height: 0;
 }
 
-.toolbar-group--tags {
+.input-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+
+.input-wrapper {
+  position: relative;
+}
+
+/* Text Inputs */
+.text-input {
+  width: 100%;
+  padding: 12px 16px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.text-input:focus {
+  outline: none;
+  border-color: var(--brand);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.text-input::placeholder {
+  color: var(--text-dim);
+}
+
+/* Caption Textarea */
+.caption-textarea {
+  width: 100%;
   flex: 1;
-  max-width: 300px;
-  min-width: 200px;
+  min-height: 180px;
+  padding: 18px 20px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  color: var(--text);
+  font-size: 15px;
+  line-height: 1.6;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  resize: none;
+  transition: all 0.2s ease;
+}
+
+.caption-textarea:focus {
+  outline: none;
+  border-color: var(--brand);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.caption-textarea::placeholder {
+  color: var(--text-dim);
+  font-style: italic;
+}
+
+/* Stats Bar */
+.stats-bar {
+  padding: 16px 20px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  margin-top: 8px;
+}
+
+.stats-row {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+  justify-content: center;
+}
+
+.stat {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--text-dim);
+  font-weight: 500;
+}
+
+.stat svg {
+  opacity: 0.7;
 }
 
 /* Button Styles */
@@ -449,6 +620,82 @@ function doDelete() {
 .btn--ghost:hover {
   background: rgba(255, 255, 255, 0.04);
   border-color: rgba(255, 255, 255, 0.12);
+}
+
+.btn--secondary {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: var(--text);
+  font-weight: 500;
+}
+
+.btn--secondary:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.20);
+}
+
+.btn--ai {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 20px;
+  background: linear-gradient(135deg, 
+    rgba(139, 92, 246, 0.15) 0%, 
+    rgba(99, 102, 241, 0.10) 100%
+  );
+  border: 1px solid rgba(139, 92, 246, 0.3);
+  border-radius: 12px;
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  width: 100%;
+  min-height: 56px;
+}
+
+.btn--ai:hover {
+  background: linear-gradient(135deg, 
+    rgba(139, 92, 246, 0.20) 0%, 
+    rgba(99, 102, 241, 0.15) 100%
+  );
+  border-color: rgba(139, 92, 246, 0.4);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(139, 92, 246, 0.2);
+}
+
+.btn-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: linear-gradient(135deg, var(--accent), var(--brand));
+  border-radius: 8px;
+  color: white;
+  flex-shrink: 0;
+}
+
+.btn-content {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  flex: 1;
+}
+
+.btn-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1.2;
+}
+
+.btn-subtitle {
+  font-size: 12px;
+  color: var(--text-dim);
+  font-weight: 500;
+  opacity: 0.8;
 }
 
 .btn--danger {
@@ -646,15 +893,14 @@ function doDelete() {
 
 /* Responsive Design */
 @media (max-width: 1200px) {
-  .editor-toolbar {
+  .ai-toolbar {
+    flex-direction: column;
     gap: 12px;
-    padding: 10px 16px;
   }
   
-  .toolbar-group--tags {
-    order: -1;
+  .actions-section {
     width: 100%;
-    max-width: none;
+    justify-content: space-between;
   }
   
   .btn__text {
@@ -663,54 +909,148 @@ function doDelete() {
   
   .btn--primary .btn__text,
   .btn--success .btn__text,
-  .btn--highlight .btn__text {
+  .btn--ai .btn-title,
+  .btn--ai .btn-subtitle {
     display: inline;
   }
 }
 
 @media (max-width: 900px) {
   .editor-header {
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  
+  .header-info {
+    flex: 1;
+    min-width: 0;
+  }
+  
+  .header-actions {
+    flex-shrink: 0;
+  }
+  
+  .ai-toolbar {
+    padding: 12px 16px;
+    flex-direction: column;
+    gap: 12px;
+  }
+  
+  .actions-section {
+    flex-direction: column;
+    width: 100%;
+    gap: 8px;
+  }
+  
+  .action-group {
+    width: 100%;
+    justify-content: center;
+  }
+  
+  .tags-section {
+    padding: 12px 16px;
+  }
+  
+  .editor-body {
+    padding: 16px;
+  }
+}
+
+@media (max-width: 700px) {
+  .editor-header {
     flex-direction: column;
     align-items: stretch;
     gap: 12px;
+    padding: 16px 20px;
+  }
+  
+  .header-info {
+    justify-content: center;
+    text-align: center;
   }
   
   .header-actions {
     justify-content: center;
+    width: 100%;
   }
   
-  .editor-toolbar {
+  .header-actions .btn {
+    flex: 1;
+    max-width: 200px;
+  }
+}
+
+@media (max-width: 500px) {
+  .editor-header {
+    padding: 12px 16px;
+  }
+  
+  .header-icon {
+    width: 32px;
+    height: 32px;
+  }
+  
+  .editor-title {
+    font-size: 14px;
+  }
+  
+  .editor-subtitle {
+    font-size: 12px;
+  }
+  
+  .btn {
+    padding: 6px 10px;
+    font-size: 12px;
+    min-height: 28px;
+  }
+  
+  .btn svg {
+    width: 14px;
+    height: 14px;
+  }
+}
+
+@media (max-width: 640px) {
+  .editor-header {
+    padding: 16px 20px;
+  }
+  
+  .header-icon {
+    width: 36px;
+    height: 36px;
+  }
+  
+  .editor-title {
+    font-size: 16px;
+  }
+  
+  .btn--ai {
+    padding: 12px 16px;
+    min-height: 48px;
+  }
+  
+  .btn-icon {
+    width: 28px;
+    height: 28px;
+  }
+  
+  .action-group {
+    flex-direction: column;
+    width: 100%;
+  }
+  
+  .stats-row {
+    flex-direction: column;
+    gap: 12px;
+  }
+  
+  .tags-display {
     flex-direction: column;
     align-items: stretch;
     gap: 8px;
   }
   
-  .toolbar-group {
-    justify-content: center;
-    width: 100%;
-  }
-  
-  .toolbar-group--secondary {
-    margin-left: 0;
-  }
-  
-  .editor-content {
-    padding: 16px;
-  }
-}
-
-@media (max-width: 640px) {
-  .editor-footer {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 12px;
-  }
-  
-  .stats-info {
-    justify-content: center;
-  }
-  
-  .tags-display {
+  .tags-list {
     justify-content: center;
   }
 }

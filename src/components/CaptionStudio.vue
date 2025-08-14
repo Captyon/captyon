@@ -106,6 +106,23 @@ function clearList() {
   }
 }
 
+// File input handlers for EmptyState component
+function handleFilesInput(event: Event) {
+  const input = event.target as HTMLInputElement;
+  if (input.files && input.files.length > 0) {
+    store.ingestFiles(Array.from(input.files));
+    input.value = ''; // Reset input
+  }
+}
+
+function handleFolderInput(event: Event) {
+  const input = event.target as HTMLInputElement;
+  if (input.files && input.files.length > 0) {
+    store.ingestFiles(Array.from(input.files));
+    input.value = ''; // Reset input
+  }
+}
+
 // wire keyboard shortcuts
 useKeyboardShortcuts({
   applyEditsSafe,
@@ -159,15 +176,22 @@ useKeyboardShortcuts({
     }
   }
 
+  // Handle new project event from empty state
+  function handleNewProjectEvent() {
+    openNewProjectModal();
+  }
+
   window.addEventListener('dragover', dragOver);
   window.addEventListener('dragleave', dragLeave);
   window.addEventListener('drop', dropHandler);
+  document.addEventListener('new-project', handleNewProjectEvent);
 
   // cleanup on unmount
   onUnmounted(() => {
     window.removeEventListener('dragover', dragOver);
     window.removeEventListener('dragleave', dragLeave);
     window.removeEventListener('drop', dropHandler);
+    document.removeEventListener('new-project', handleNewProjectEvent);
   });
 });
 </script>
@@ -206,7 +230,8 @@ useKeyboardShortcuts({
 
       <Viewer />
 
-      <Editor />
+      <!-- Only show Editor when there's a project with items -->
+      <Editor v-if="(store.getCurrentProject()?.items || []).length > 0" />
     </main>
 
     <footer>
@@ -222,6 +247,10 @@ useKeyboardShortcuts({
     </footer>
 
     <div class="drop-overlay" id="dropOverlay" style="display:none">Drop images and matching .txt here</div>
+
+    <!-- Hidden file inputs for EmptyState component -->
+    <input type="file" id="filesInput" style="display:none" multiple accept="image/*,video/*" @change="handleFilesInput" />
+    <input type="file" id="folderInput" style="display:none" webkitdirectory @change="handleFolderInput" />
 
     <Toasts />
 

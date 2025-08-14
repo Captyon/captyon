@@ -1,7 +1,17 @@
 <template>
   <section class="viewer">
-    <!-- Modern Viewer Toolbar -->
-    <div class="viewer-toolbar">
+    <!-- Empty State -->
+    <EmptyState 
+      v-if="showEmptyState" 
+      :onPickFiles="handlePickFiles"
+      :onPickFolder="handlePickFolder" 
+      :onNewProject="handleNewProject" 
+    />
+
+    <!-- Normal Viewer Content -->
+    <template v-else>
+      <!-- Modern Viewer Toolbar -->
+      <div class="viewer-toolbar">
       <!-- Navigation Group -->
       <div class="toolbar-group toolbar-group--navigation">
         <button class="btn btn--primary" @click="prev" title="Previous image (Alt+N)">
@@ -221,6 +231,7 @@
         </div>
       </div>
     </div>
+    </template>
   </section>
 </template>
 
@@ -232,6 +243,7 @@ import CurationCard from './CurationCard.vue';
 import { useCuration } from '../../composables/useCuration';
 import CropOverlay from './CropOverlay.vue';
 import { CROPPING } from '../../config/cropping';
+import EmptyState from './EmptyState.vue';
 
 const { commitCuration, openCurationExitConfirm } = useCuration();
 
@@ -243,6 +255,49 @@ const currentProject = computed(() => store.getCurrentProject());
 const currentItem = computed(() => store.currentItem());
 const videoMetaCompos = useVideoMeta();
 const { videoMeta, onVideoLoadedMeta, formatDuration } = videoMetaCompos;
+
+// Empty state logic
+const showEmptyState = computed(() => {
+  const project = currentProject.value;
+  const item = currentItem.value;
+  
+  // Show empty state if:
+  // 1. No current project exists, OR
+  // 2. Current project exists but has no items, OR
+  // 3. Current project has items but no valid current item
+  return !project || 
+         !project.items || 
+         project.items.length === 0 || 
+         !item || 
+         state.currentIndex < 0;
+});
+
+// Empty state handlers
+function handlePickFiles() {
+  try {
+    (document.getElementById('filesInput') as HTMLInputElement | null)?.click();
+  } catch (e) {
+    console.error('Failed to trigger file picker:', e);
+  }
+}
+
+function handlePickFolder() {
+  try {
+    (document.getElementById('folderInput') as HTMLInputElement | null)?.click();
+  } catch (e) {
+    console.error('Failed to trigger folder picker:', e);
+  }
+}
+
+function handleNewProject() {
+  try {
+    // Emit event to parent or use store method to open new project modal
+    const event = new CustomEvent('new-project');
+    document.dispatchEvent(event);
+  } catch (e) {
+    console.error('Failed to trigger new project:', e);
+  }
+}
 
 // Progress calculation
 const progressPercentage = computed(() => {

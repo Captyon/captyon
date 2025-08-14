@@ -87,16 +87,13 @@
 
         <!-- Hover Actions -->
         <div class="thumb-actions">
-          <button class="action-btn" @click.stop="selectThumb(idx)" title="View this item">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-              <circle cx="12" cy="12" r="3"/>
-            </svg>
+          <button class="action-btn action-btn--view" @click.stop="selectThumb(idx)" title="View this item">
+            <span class="action-icon">👁</span>
           </button>
-          <button class="action-btn" @click.stop="toggleSelect(item)" title="Toggle selection">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <polyline points="20,6 9,17 4,12"/>
-            </svg>
+          <button class="action-btn action-btn--select" @click.stop="toggleSelect(item)" 
+                  :class="{ 'action-btn--selected': item.selected }"
+                  :title="item.selected ? 'Unselect item' : 'Select item'">
+            <span class="action-icon">{{ item.selected ? '×' : '✓' }}</span>
           </button>
         </div>
 
@@ -401,30 +398,94 @@ function truncateCaption(caption: string, maxLength = 120): string {
   left: 50%;
   transform: translate(-50%, -50%);
   display: flex;
-  gap: 8px;
+  gap: 12px;
   opacity: 0;
-  transition: opacity 0.2s ease;
+  transition: all 0.3s ease;
   z-index: 4;
 }
 
 .action-btn {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
-  background: rgba(0, 0, 0, 0.8);
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  width: 44px;
+  height: 44px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
+  backdrop-filter: blur(16px);
+  border: 2px solid rgba(255, 255, 255, 0.2);
   border-radius: 50%;
   color: white;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15), 0 2px 4px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+.action-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
+  border-radius: 50%;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.action-btn--view {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.3), rgba(29, 78, 216, 0.2));
+}
+
+.action-btn--select {
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.3), rgba(21, 128, 61, 0.2));
+}
+
+.action-btn--selected {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.3), rgba(185, 28, 28, 0.2)) !important;
 }
 
 .action-btn:hover {
-  background: rgba(99, 102, 241, 0.9);
-  border-color: var(--brand);
+  transform: scale(1.15) translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.25), 0 4px 12px rgba(0, 0, 0, 0.15);
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+.action-btn--view:hover {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.8), rgba(29, 78, 216, 0.6));
+  box-shadow: 0 8px 25px rgba(59, 130, 246, 0.3), 0 4px 12px rgba(29, 78, 216, 0.2);
+}
+
+.action-btn--select:hover {
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.8), rgba(21, 128, 61, 0.6));
+  box-shadow: 0 8px 25px rgba(34, 197, 94, 0.3), 0 4px 12px rgba(21, 128, 61, 0.2);
+}
+
+.action-btn--selected:hover {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.8), rgba(185, 28, 28, 0.6)) !important;
+  box-shadow: 0 8px 25px rgba(239, 68, 68, 0.3), 0 4px 12px rgba(185, 28, 28, 0.2);
+}
+
+.action-btn:hover::before {
+  opacity: 1;
+}
+
+.action-btn:active {
+  transform: scale(1.05) translateY(-1px);
+  transition-duration: 0.1s;
+}
+
+.action-icon {
+  font-size: 18px;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3));
+  transition: transform 0.2s ease;
+  z-index: 1;
+  position: relative;
+}
+
+.action-btn:hover .action-icon {
   transform: scale(1.1);
 }
 

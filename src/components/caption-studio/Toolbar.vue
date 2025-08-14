@@ -631,7 +631,7 @@ function exportProjectZip() {
   background: rgba(255, 255, 255, 0.08);
 }
 
-.project-select:focus {
+.project-select:focus-visible {
   outline: none;
   border-color: var(--brand);
   box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
@@ -668,7 +668,7 @@ function exportProjectZip() {
   transform: translateY(-1px);
 }
 
-.btn:focus {
+.btn:focus-visible {
   outline: none;
   border-color: var(--brand);
   box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
@@ -803,7 +803,7 @@ function exportProjectZip() {
   padding-right: 40px;
 }
 
-.search-input:focus {
+.search-input:focus-visible {
   outline: none;
   border-color: var(--brand);
   box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
@@ -935,7 +935,7 @@ function exportProjectZip() {
   transition: all 0.2s ease;
 }
 
-.rename-input:focus {
+.rename-input:focus-visible {
   outline: none;
   border-color: var(--brand);
   box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);

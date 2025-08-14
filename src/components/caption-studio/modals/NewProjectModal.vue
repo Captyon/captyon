@@ -338,8 +338,8 @@ watch(() => props.show, (newShow) => {
   resize: vertical;
 }
 
-.form-input:focus,
-.form-textarea:focus {
+.form-input:focus-visible,
+.form-textarea:focus-visible {
   outline: none;
   border-color: var(--brand, #3d6fff);
   box-shadow: 0 0 0 3px rgba(61, 111, 255, 0.1);
