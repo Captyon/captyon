@@ -85,6 +85,42 @@ export function useProjectStore() {
         return false;
       }
     },
+    closeProject: async () => {
+      try {
+        // Save current project before closing if there are unsaved changes
+        if (state.currentId) {
+          await saveCurrentProject();
+        }
+        
+        // Reset to empty state
+        state.currentId = null;
+        state.currentIndex = -1;
+        
+        // Clear UI state
+        state.zoom = 100;
+        state.rotation = 0;
+        state.panX = 0;
+        state.panY = 0;
+        state.selectedRegionId = null;
+        state.selection.clear();
+        state.filter = { text: '', onlyMissing: false, onlySelected: false };
+        state.manualDimPercent = 100;
+        state.curationMode = false;
+        
+        // Clear any ongoing operations
+        state.status = 'Idle';
+        state.progress = { cur: 0, total: 0 };
+        state.promptCandidates = [];
+        state.showPromptModal = false;
+        
+        addToast('Project closed', 'ok');
+        return true;
+      } catch (e) {
+        console.error('closeProject failed', e);
+        addToast('Failed to close project', 'warn');
+        return false;
+      }
+    },
     // Toasts
     toasts: state.toasts,
     addToast,

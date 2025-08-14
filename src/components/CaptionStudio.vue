@@ -17,6 +17,7 @@ import { useKeyboardShortcuts } from '../composables/useKeyboardShortcuts';
 import { useCuration } from '../composables/useCuration';
 import { useFilePicker } from '../composables/useFilePicker';
 import Toasts from './Toasts.vue';
+import EmptyState from './caption-studio/EmptyState.vue';
 import type { ToolbarItem } from './caption-studio/toolbar-types';
 
 const store = useProjectStore();
@@ -202,7 +203,7 @@ useKeyboardShortcuts({
       <Toolbar :onNewProject="openNewProjectModal" />
     </header>
 
-    <main>
+    <main v-if="state.currentId">
       <aside>
         <div class="panel-head"><h3>Media</h3><span class="right badge" id="countBadge">{{ (store.getCurrentProject()?.items || []).length }}</span></div>
         <div class="project-bar">
@@ -225,6 +226,14 @@ useKeyboardShortcuts({
 
       <!-- Only show Editor when there's a project with items -->
       <Editor v-if="(store.getCurrentProject()?.items || []).length > 0" />
+    </main>
+
+    <!-- Show EmptyState when no project is active -->
+    <main v-else class="main-empty">
+      <EmptyState 
+        :onPickFiles="openFilesInput"
+        :onPickFolder="openFolderInput" 
+        :onNewProject="openNewProjectModal" />
     </main>
 
     <footer>

@@ -28,16 +28,52 @@
               {{ state.projects.get(id)?.name || id }}
             </option>
           </select>
-          <button 
-            class="btn btn--icon btn--ghost" 
-            @click="openRenamePopover" 
-            title="Rename project"
-            :disabled="!selectedId">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-              <path d="m18.5 2.5 a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-            </svg>
-          </button>
+          
+          <!-- Project Actions Dropdown -->
+          <div class="dropdown-wrapper" ref="projectDropdownRef">
+            <button 
+              ref="projectBtnRef" 
+              class="btn btn--icon btn--ghost" 
+              @click="toggleProjectDropdown" 
+              title="Project actions"
+              :disabled="!selectedId">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>
+                <circle cx="12" cy="12" r="3"/>
+              </svg>
+            </button>
+            <Teleport to="body">
+              <div
+                v-if="projectDropdownOpen"
+                ref="projectMenuRef"
+                class="dropdown-menu dropdown-menu--floating"
+                :style="{ top: projectMenuPos.top + 'px', left: projectMenuPos.left + 'px' }"
+              >
+                <button class="dropdown-item" @click="openRenamePopover">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                    <path d="m18.5 2.5 a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                  </svg>
+                  Rename Project
+                </button>
+                <button class="dropdown-item" @click="openProjectSettingsFromDropdown">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>
+                    <circle cx="12" cy="12" r="3"/>
+                  </svg>
+                  Project Settings
+                </button>
+                <div class="dropdown-divider"></div>
+                <button class="dropdown-item" @click="closeCurrentProject">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <path d="M18 6L6 18"/>
+                    <path d="M6 6l12 12"/>
+                  </svg>
+                  Close Project
+                </button>
+              </div>
+            </Teleport>
+          </div>
         </div>
 
         <!-- Rename Popover -->
@@ -120,54 +156,51 @@
 
     <!-- Secondary Actions -->
     <div class="toolbar-section toolbar-section--secondary">
-      <!-- File Management -->
+      <!-- File Actions Dropdown -->
       <div class="action-group action-group--compact">
-        <button class="btn btn--ghost" @click="triggerJsonImport" title="Import project data">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-            <polyline points="7,10 12,15 17,10"/>
-            <line x1="12" y1="15" x2="12" y2="3"/>
-          </svg>
-          <span class="btn__text">Import</span>
-        </button>
-
-        <button class="btn btn--ghost" @click="saveProject" title="Save current project">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
-            <polyline points="17,21 17,13 7,13 7,21"/>
-            <polyline points="7,3 7,8 15,8"/>
-          </svg>
-          <span class="btn__text">Save</span>
-        </button>
-
-        <!-- Export Dropdown -->
-        <div class="dropdown-wrapper" ref="exportDropdownRef">
-          <button ref="exportBtnRef" class="btn btn--ghost" @click="toggleExportDropdown" title="Export project">
+        <div class="dropdown-wrapper" ref="fileDropdownRef">
+          <button ref="fileBtnRef" class="btn btn--ghost" @click="toggleFileDropdown" title="File actions">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M21 9v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9"/>
-              <polyline points="7,14 12,9 17,14"/>
-              <line x1="12" y1="9" x2="12" y2="21"/>
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+              <polyline points="14,2 14,8 20,8"/>
             </svg>
-            <span class="btn__text">Export</span>
+            <span class="btn__text">File</span>
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="dropdown-arrow">
               <polyline points="6,9 12,15 18,9"/>
             </svg>
           </button>
           <Teleport to="body">
             <div
-              v-if="exportOpen"
-              ref="exportMenuRef"
+              v-if="fileDropdownOpen"
+              ref="fileMenuRef"
               class="dropdown-menu dropdown-menu--floating"
-              :style="{ top: exportMenuPos.top + 'px', left: exportMenuPos.left + 'px' }"
+              :style="{ top: fileMenuPos.top + 'px', left: fileMenuPos.left + 'px' }"
             >
-              <button class="dropdown-item" @click="exportProjectJson">
+              <button class="dropdown-item" @click="triggerJsonImportFromDropdown">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                  <polyline points="7,10 12,15 17,10"/>
+                  <line x1="12" y1="15" x2="12" y2="3"/>
+                </svg>
+                Import Project
+              </button>
+              <button class="dropdown-item" @click="saveProjectFromDropdown">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+                  <polyline points="17,21 17,13 7,13 7,21"/>
+                  <polyline points="7,3 7,8 15,8"/>
+                </svg>
+                Save Project
+              </button>
+              <div class="dropdown-divider"></div>
+              <button class="dropdown-item" @click="exportProjectJsonFromDropdown">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                   <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
                   <polyline points="14,2 14,8 20,8"/>
                 </svg>
                 Export as JSON
               </button>
-              <button class="dropdown-item" @click="exportProjectZip">
+              <button class="dropdown-item" @click="exportProjectZipFromDropdown">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                   <path d="M16 22h2a2 2 0 0 0 2-2V7.5L14.5 2H6a2 2 0 0 0-2 2v3"/>
                   <polyline points="14,2 14,8 20,8"/>
@@ -180,34 +213,60 @@
             </div>
           </Teleport>
         </div>
-      </div>
 
-      <!-- Tools & Settings -->
-      <div class="action-group action-group--compact">
-        <button 
-          class="btn"
-          :class="{ 'btn--active': state.curationMode }"
-          @click="toggleCuration"
-          title="Curation mode - quickly accept/reject items">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
-            <line x1="8" y1="21" x2="16" y2="21"/>
-            <line x1="12" y1="17" x2="12" y2="21"/>
-          </svg>
-          <span class="btn__text">Curation</span>
-          <span v-if="state.curationMode && (curationCounts.accepted > 0 || curationCounts.rejected > 0)" class="curation-badge">
-            <span class="curation-accepted">✓{{ curationCounts.accepted }}</span>
-            <span class="curation-rejected">✕{{ curationCounts.rejected }}</span>
-          </span>
-        </button>
-
-        <button class="btn btn--ghost" @click="openProjectSettings" title="Project settings">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>
-            <circle cx="12" cy="12" r="3"/>
-          </svg>
-          <span class="btn__text">Settings</span>
-        </button>
+        <!-- Tools Dropdown -->
+        <div class="dropdown-wrapper" ref="toolsDropdownRef">
+          <button ref="toolsBtnRef" class="btn btn--ghost" @click="toggleToolsDropdown" title="Tools and settings">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>
+              <circle cx="12" cy="12" r="3"/>
+            </svg>
+            <span class="btn__text">Tools</span>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="dropdown-arrow">
+              <polyline points="6,9 12,15 18,9"/>
+            </svg>
+          </button>
+          <Teleport to="body">
+            <div
+              v-if="toolsDropdownOpen"
+              ref="toolsMenuRef"
+              class="dropdown-menu dropdown-menu--floating"
+              :style="{ top: toolsMenuPos.top + 'px', left: toolsMenuPos.left + 'px' }"
+            >
+              <button 
+                class="dropdown-item"
+                :class="{ 'dropdown-item--active': state.curationMode }"
+                @click="toggleCurationFromDropdown">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
+                  <line x1="8" y1="21" x2="16" y2="21"/>
+                  <line x1="12" y1="17" x2="12" y2="21"/>
+                </svg>
+                {{ state.curationMode ? 'Exit Curation Mode' : 'Curation Mode' }}
+                <span v-if="state.curationMode && (curationCounts.accepted > 0 || curationCounts.rejected > 0)" class="curation-badge-dropdown">
+                  <span class="curation-accepted">✓{{ curationCounts.accepted }}</span>
+                  <span class="curation-rejected">✕{{ curationCounts.rejected }}</span>
+                </span>
+              </button>
+              <button class="dropdown-item" @click="openSettingsFromDropdown">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <circle cx="12" cy="12" r="3"/>
+                  <path d="M12 1v6m0 6v6"/>
+                  <path d="m1 12 6 0m6 0 6 0"/>
+                </svg>
+                App Settings
+              </button>
+              <button class="dropdown-item" @click="openHelpFromDropdown">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <circle cx="12" cy="12" r="10"/>
+                  <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
+                  <line x1="12" y1="17" x2="12.01" y2="17"/>
+                </svg>
+                Help & Support
+              </button>
+            </div>
+          </Teleport>
+        </div>
       </div>
 
       <!-- More Menu (Mobile) -->
@@ -276,10 +335,22 @@ const { curationCounts, openCurationExitConfirm } = useCuration();
 // Reactive refs
 const selectedId = ref<string | null>(state.currentId);
 const exportOpen = ref(false);
+const projectDropdownOpen = ref(false);
+const fileDropdownOpen = ref(false);
+const toolsDropdownOpen = ref(false);
 const mobileMenuOpen = ref(false);
 const exportBtnRef = ref<HTMLElement | null>(null);
 const exportMenuRef = ref<HTMLElement | null>(null);
 const exportMenuPos = ref({ top: 0, left: 0 });
+const projectBtnRef = ref<HTMLElement | null>(null);
+const projectMenuRef = ref<HTMLElement | null>(null);
+const projectMenuPos = ref({ top: 0, left: 0 });
+const fileBtnRef = ref<HTMLElement | null>(null);
+const fileMenuRef = ref<HTMLElement | null>(null);
+const fileMenuPos = ref({ top: 0, left: 0 });
+const toolsBtnRef = ref<HTMLElement | null>(null);
+const toolsMenuRef = ref<HTMLElement | null>(null);
+const toolsMenuPos = ref({ top: 0, left: 0 });
 
 // Rename functionality
 const projectName = ref('');
@@ -291,6 +362,9 @@ const renameInputRef = ref<HTMLInputElement | null>(null);
 // Element refs
 const searchInputRef = ref<HTMLInputElement | null>(null);
 const exportDropdownRef = ref<HTMLElement | null>(null);
+const projectDropdownRef = ref<HTMLElement | null>(null);
+const fileDropdownRef = ref<HTMLElement | null>(null);
+const toolsDropdownRef = ref<HTMLElement | null>(null);
 
 // Watchers
 watch(() => state.currentId, (v) => { selectedId.value = v; });
@@ -304,8 +378,38 @@ function positionExportMenu() {
   exportMenuPos.value.left = Math.round(rect.right - menuW);
 }
 
+function positionProjectMenu() {
+  const anchor = projectBtnRef.value;
+  if (!anchor) return;
+  const rect = anchor.getBoundingClientRect();
+  const menuW = projectMenuRef.value?.offsetWidth ?? 200;
+  projectMenuPos.value.top = Math.round(rect.bottom + 8);
+  projectMenuPos.value.left = Math.round(rect.right - menuW);
+}
+
+function positionFileMenu() {
+  const anchor = fileBtnRef.value;
+  if (!anchor) return;
+  const rect = anchor.getBoundingClientRect();
+  const menuW = fileMenuRef.value?.offsetWidth ?? 200;
+  fileMenuPos.value.top = Math.round(rect.bottom + 8);
+  fileMenuPos.value.left = Math.round(rect.right - menuW);
+}
+
+function positionToolsMenu() {
+  const anchor = toolsBtnRef.value;
+  if (!anchor) return;
+  const rect = anchor.getBoundingClientRect();
+  const menuW = toolsMenuRef.value?.offsetWidth ?? 200;
+  toolsMenuPos.value.top = Math.round(rect.bottom + 8);
+  toolsMenuPos.value.left = Math.round(rect.right - menuW);
+}
+
 function onReposition() {
   if (exportOpen.value) positionExportMenu();
+  if (projectDropdownOpen.value) positionProjectMenu();
+  if (fileDropdownOpen.value) positionFileMenu();
+  if (toolsDropdownOpen.value) positionToolsMenu();
 }
 
 // Event handlers for closing dropdowns
@@ -317,6 +421,27 @@ function handleClickOutside(e: Event) {
       && !exportDropdownRef.value?.contains(target)
       && !exportMenuRef.value?.contains(target)) {
     exportOpen.value = false;
+  }
+  
+  // Close project dropdown
+  if (projectDropdownOpen.value 
+      && !projectDropdownRef.value?.contains(target)
+      && !projectMenuRef.value?.contains(target)) {
+    projectDropdownOpen.value = false;
+  }
+  
+  // Close file dropdown
+  if (fileDropdownOpen.value 
+      && !fileDropdownRef.value?.contains(target)
+      && !fileMenuRef.value?.contains(target)) {
+    fileDropdownOpen.value = false;
+  }
+  
+  // Close tools dropdown
+  if (toolsDropdownOpen.value 
+      && !toolsDropdownRef.value?.contains(target)
+      && !toolsMenuRef.value?.contains(target)) {
+    toolsDropdownOpen.value = false;
   }
   
   // Close mobile menu
@@ -344,6 +469,9 @@ function handleKeydown(e: KeyboardEvent) {
   // Escape to close modals/dropdowns
   if (e.key === 'Escape') {
     exportOpen.value = false;
+    projectDropdownOpen.value = false;
+    fileDropdownOpen.value = false;
+    toolsDropdownOpen.value = false;
     mobileMenuOpen.value = false;
     if (showRenamePopover.value) {
       closeRenamePopover();
@@ -486,6 +614,21 @@ function toggleExportDropdown() {
   if (exportOpen.value) nextTick(positionExportMenu);
 }
 
+function toggleProjectDropdown() {
+  projectDropdownOpen.value = !projectDropdownOpen.value;
+  if (projectDropdownOpen.value) nextTick(positionProjectMenu);
+}
+
+function toggleFileDropdown() {
+  fileDropdownOpen.value = !fileDropdownOpen.value;
+  if (fileDropdownOpen.value) nextTick(positionFileMenu);
+}
+
+function toggleToolsDropdown() {
+  toolsDropdownOpen.value = !toolsDropdownOpen.value;
+  if (toolsDropdownOpen.value) nextTick(positionToolsMenu);
+}
+
 function toggleMobileMenu() {
   mobileMenuOpen.value = !mobileMenuOpen.value;
 }
@@ -541,6 +684,58 @@ function exportProjectZip() {
   } finally {
     exportOpen.value = false;
   }
+}
+
+// Project dropdown functions
+function openProjectSettingsFromDropdown() {
+  projectDropdownOpen.value = false;
+  openProjectSettings();
+}
+
+async function closeCurrentProject() {
+  projectDropdownOpen.value = false;
+  try {
+    await store.closeProject();
+  } catch (e) {
+    console.error('closeCurrentProject failed', e);
+  }
+}
+
+// File dropdown functions
+function triggerJsonImportFromDropdown() {
+  fileDropdownOpen.value = false;
+  triggerJsonImport();
+}
+
+function saveProjectFromDropdown() {
+  fileDropdownOpen.value = false;
+  saveProject();
+}
+
+function exportProjectJsonFromDropdown() {
+  fileDropdownOpen.value = false;
+  exportProjectJson();
+}
+
+function exportProjectZipFromDropdown() {
+  fileDropdownOpen.value = false;
+  exportProjectZip();
+}
+
+// Tools dropdown functions
+function toggleCurationFromDropdown() {
+  toolsDropdownOpen.value = false;
+  toggleCuration();
+}
+
+function openSettingsFromDropdown() {
+  toolsDropdownOpen.value = false;
+  openSettings();
+}
+
+function openHelpFromDropdown() {
+  toolsDropdownOpen.value = false;
+  openHelp();
 }
 </script>
 
@@ -943,6 +1138,12 @@ function exportProjectZip() {
   background: rgba(255, 255, 255, 0.08);
 }
 
+.dropdown-divider {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.08);
+  margin: 4px 0;
+}
+
 /* Rename popover */
 .rename-popover {
   position: absolute;
@@ -1252,6 +1453,12 @@ svg {
 
 .dropdown-menu--floating .dropdown-item:hover {
   background: rgba(255, 255, 255, 0.08) !important;
+}
+
+.dropdown-menu--floating .dropdown-divider {
+  height: 1px !important;
+  background: rgba(255, 255, 255, 0.08) !important;
+  margin: 4px 0 !important;
 }
 
 .dropdown-menu--floating svg {
