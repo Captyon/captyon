@@ -150,6 +150,95 @@ export async function exportProjectZip() {
   }
 }
 
+export async function exportRegions() {
+  const proj = state.currentId ? state.projects.get(state.currentId) : null;
+  if (!proj) {
+    addToast('No project', 'warn');
+    return;
+  }
+  const idx = typeof state.currentIndex === 'number' ? state.currentIndex : 0;
+  const item = (proj.items || [])[idx];
+  if (!item) {
+    addToast('No item selected', 'warn');
+    return;
+  }
+  if (!item.regions || item.regions.length === 0) {
+    addToast('No regions to export for current item', 'warn');
+    return;
+  }
+
+  try {
+    state.status = 'Preparing region export';
+
+    // Load JSZip dynamically (same approach as exportProjectZip)
+    const JSZipModule = await import('jszip');
+    const JSZip = (JSZipModule && (JSZipModule as any).default) || JSZipModule;
+    const zipObj = new JSZip();
+
+    // Prepare source image element so we can draw full-res crops
+    const img = new Image();
+    img.src = item.img || '';
+    await new Promise((resolve, reject) => {
+      img.onload = () => resolve(null);
+      img.onerror = (e) => reject(e);
+    });
+
+    const sidecar: any = {
+      sourceImageId: item.id,
+      regions: []
+    };
+
+    for (let i = 0; i < item.regions.length; i++) {
+      const r = item.regions[i];
+      // create a canvas at the region's full-resolution pixel size
+      const canvas = document.createElement('canvas');
+      canvas.width = r.w;
+      canvas.height = r.h;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) continue;
+      // draw the crop from the source image
+      ctx.drawImage(img, r.x, r.y, r.w, r.h, 0, 0, r.w, r.h);
+
+      // convert to PNG blob
+      const blob: Blob | null = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+      const name = `region-${String(i + 1).padStart(3, '0')}.png`;
+      if (blob) {
+        zipObj.file(name, blob);
+      }
+
+      sidecar.regions.push({
+        name: r.name || '',
+        caption: r.caption || '',
+        x: Math.round(r.x),
+        y: Math.round(r.y),
+        w: Math.round(r.w),
+        h: Math.round(r.h),
+        aspect: r.aspect || `${Math.round(r.w)}:${Math.round(r.h)}`,
+        size: [Math.round(r.w), Math.round(r.h)]
+      });
+    }
+
+    zipObj.file('regions.json', JSON.stringify(sidecar, null, 2));
+
+    state.status = 'Generating regions zip';
+
+    const bundle = await zipObj.generateAsync({ type: 'blob', compression: 'DEFLATE' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(bundle);
+    a.download = slug((item.filename || 'regions') + '-regions') + '.zip';
+    a.click();
+    URL.revokeObjectURL(a.href);
+
+    addToast('Region export complete', 'ok');
+  } catch (err) {
+    console.error('exportRegions failed', err);
+    addToast('Export failed', 'warn');
+  } finally {
+    state.status = 'Idle';
+    state.progress = { cur: 0, total: 0 };
+  }
+}
+
 export function importProjectFromJSON(obj: any) {
   if (obj && obj.schema === 'caption-studio-v1' && obj.project) {
     const p: any = obj.project;

@@ -1,3 +1,18 @@
+export type Region = {
+  id: string;
+  name: string;
+  caption?: string;
+  // Coordinates are always in source image pixels (full-resolution)
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  aspect: string; // e.g. "1:1", "4:3"
+  size: [number, number]; // [W, H] in pixels
+  createdAt?: number;
+  updatedAt?: number;
+};
+
 export type Item = {
   id: string;
   filename: string;
@@ -14,6 +29,9 @@ export type Item = {
   // Optional media metadata for video files
   mediaType?: 'image' | 'video' | string;
   size?: number; // bytes
+
+  // Crop regions (optional)
+  regions?: Region[];
 
   // Curation status accept/reject workflow
   curationStatus?: 'accepted' | 'rejected';

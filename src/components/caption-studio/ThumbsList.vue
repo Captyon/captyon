@@ -13,6 +13,9 @@
       <template v-else>
         <img :src="it.img" alt="" />
       </template>
+      <div v-if="it.regions && it.regions.length" class="regions-badge" @click.stop="selectThumb(idx)" :title="it.regions.length + ' regions'" style="position:absolute; top:6px; right:6px; background:rgba(59,130,246,0.9); color:#fff; font-weight:700; font-size:10px; padding:4px 6px; border-radius:999px; cursor:pointer; z-index:2">
+        {{ it.regions.length }}
+      </div>
       <div class="cap">
         <span v-if="it.caption" v-html="it.caption"></span>
         <i v-else style="color:#7d8aa0">No caption</i>

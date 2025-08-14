@@ -20,6 +20,8 @@ export type State = {
   filter: { text: string; onlyMissing: boolean; onlySelected: boolean };
   settings: Settings;
   manualDimPercent?: number;
+  // Currently-selected region (global selection shared between overlay and editor)
+  selectedRegionId?: string | null;
   selection: Set<string>;
   status: string;
   progress: Progress;

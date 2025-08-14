@@ -50,12 +50,12 @@ export function bulkApply(prefix = '', suffix = '', find = '', replaceStr = '') 
   addToast('Bulk edit applied', 'ok');
 }
 
-export async function saveCurrentProject() {
+export async function saveCurrentProject(suppressToast: boolean = false) {
   const proj = state.currentId ? state.projects.get(state.currentId) : null;
   if (!proj) return;
   proj.updatedAt = Date.now();
   await putProjectAny(proj);
-  addToast('Project saved', 'ok');
+  if (!suppressToast) addToast('Project saved', 'ok');
   // refreshMetaBar is in meta module; the facade will call it if needed
 }
 

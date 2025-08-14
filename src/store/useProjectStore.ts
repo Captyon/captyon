@@ -32,6 +32,10 @@ export function useProjectStore() {
     getAbsoluteIndex,
     ingestFiles,
     saveCurrentProject,
+    // selection helpers
+    setSelectedRegion(id: string | null) {
+      state.selectedRegionId = id;
+    },
     exportProject,
     exportProjectZip,
     importProjectFromJSON,

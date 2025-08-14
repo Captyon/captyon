@@ -3,12 +3,13 @@
     <div class="viewer-tools">
       <button class="btn small" id="prevBtn" @click="prev">◀ Prev <kbd>Alt+N</kbd></button>
       <button class="btn small" id="nextBtn" @click="next">Next ▶ <kbd>Alt+M</kbd></button>
-      <div class="seg" style="margin-left:auto; display:flex; gap:8px; align-items:center">
-        <label for="zoomRange">Zoom</label>
-        <input type="range" id="zoomRange" min="10" max="300" v-model.number="state.zoom" />
-        <button class="btn small" id="fitBtn" @click="fit">Fit</button>
-        <button class="btn small" id="fillBtn" @click="fill">Fill</button>
-        <button class="btn small" id="rotateBtn" @click="rotate">Rotate 90°</button>
+        <div class="seg" style="margin-left:auto; display:flex; gap:8px; align-items:center">
+          <label for="zoomRange">Zoom</label>
+          <input type="range" id="zoomRange" min="10" max="300" v-model.number="state.zoom" />
+          <button class="btn small" id="fitBtn" @click="fit">Fit</button>
+          <button class="btn small" id="fillBtn" @click="fill">Fill</button>
+          <button class="btn small" id="rotateBtn" @click="rotate">Rotate 90°</button>
+          <button class="btn small" id="suggestBtn" @click="onSuggestRegions">Suggest Regions</button>
 
         <!-- Manual dim control -->
         <label for="manualDim" style="display:flex;align-items:center;gap:6px;margin-left:8px">
@@ -45,6 +46,7 @@
             <img id="mainImage" :src="currentItem?.img || ''" :style="mainMediaStyle" alt="" />
           </template>
         </template>
+        <CropOverlay ref="cropOverlay" />
       </div>
     </div>
 
@@ -73,11 +75,14 @@ import { useProjectStore } from '../../store/useProjectStore';
 import { useVideoMeta } from '../../composables/useVideoMeta';
 import CurationCard from './CurationCard.vue';
 import { useCuration } from '../../composables/useCuration';
+import CropOverlay from './CropOverlay.vue';
+import { CROPPING } from '../../config/cropping';
 
 const { commitCuration, openCurationExitConfirm } = useCuration();
 
 const store = useProjectStore();
 const { state } = store;
+const cropOverlay = ref<any>(null);
 
 const currentProject = computed(() => store.getCurrentProject());
 const currentItem = computed(() => store.currentItem());
@@ -156,6 +161,69 @@ function next() { store.next(); }
 function fit() { state.zoom = 100; state.panX = 0; state.panY = 0; }
 function fill() { state.zoom = 150; state.panX = 0; state.panY = 0; }
 function rotate() { state.rotation = (state.rotation + 90) % 360; }
+
+/**
+ * Suggest regions (lightweight in-browser heuristic).
+ * - If a detector implementation is later provided, this function can be updated
+ *   to call the detector and map boxes back to full-resolution coordinates.
+ * - For now create a centered crop using CROPPING.minSize if the image is large enough.
+ */
+async function onSuggestRegions() {
+  const proj = currentProject.value;
+  const it = currentItem.value;
+  if (!proj || !it) {
+    (store as any).addToast?.('No image loaded', 'warn');
+    return;
+  }
+
+  const imgW = it.width || (it as any).img?.width || 0;
+  const imgH = it.height || (it as any).img?.height || 0;
+
+  // if we don't have explicit dims, try to extract from data URL by loading an Image
+  let naturalW = imgW;
+  let naturalH = imgH;
+  if (!naturalW || !naturalH) {
+    try {
+      const tmp = await new Promise<HTMLImageElement>((resolve, reject) => {
+        const im = new Image();
+        im.onload = () => resolve(im);
+        im.onerror = (e) => reject(e);
+        im.src = it.img || '';
+      });
+      naturalW = tmp.naturalWidth || tmp.width || naturalW;
+      naturalH = tmp.naturalHeight || tmp.height || naturalH;
+    } catch (e) {
+      console.warn('Failed to load image to determine natural size', e);
+    }
+  }
+
+  const minW = Math.min(CROPPING.minSize.w, naturalW || CROPPING.minSize.w);
+  const minH = Math.min(CROPPING.minSize.h, naturalH || CROPPING.minSize.h);
+
+  if ((naturalW && naturalH) && (naturalW < CROPPING.minSize.w || naturalH < CROPPING.minSize.h)) {
+    (store as any).addToast?.(`Image smaller than minimum region size ${CROPPING.minSize.w}×${CROPPING.minSize.h}`, 'warn');
+    return;
+  }
+
+  // Centered region at min size (or scaled down to image)
+  const w = Math.min(CROPPING.minSize.w, naturalW || CROPPING.minSize.w);
+  const h = Math.min(CROPPING.minSize.h, naturalH || CROPPING.minSize.h);
+  const x = Math.max(0, Math.round(((naturalW || w) - w) / 2));
+  const y = Math.max(0, Math.round(((naturalH || h) - h) / 2));
+
+  try {
+    // Use the CropOverlay component instance via ref to add suggested boxes.
+    if (cropOverlay.value?.addSuggestedBoxes) {
+      cropOverlay.value.addSuggestedBoxes([{ x, y, w, h }]);
+      (store as any).addToast?.('Suggested region added (centered).', 'ok');
+    } else {
+      (store as any).addToast?.('Suggest failed: overlay not available', 'warn');
+    }
+  } catch (err) {
+    console.error('onSuggestRegions failed', err);
+    (store as any).addToast?.('Suggest regions failed', 'warn');
+  }
+}
 
 const dimInfo = computed(() => {
   // Returns { dimPercent?: number, source: 'manual' | 'auto' | null }
