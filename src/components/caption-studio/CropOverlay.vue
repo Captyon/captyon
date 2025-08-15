@@ -33,7 +33,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onBeforeUnmount, type CSSProperties } from 'vue';
+import { ref, computed, onMounted, onBeforeUnmount, watch, type CSSProperties } from 'vue';
 import { useProjectStore } from '../../store/useProjectStore';
 import { screenRectToImageRect, imageRectToScreenRect, computeImageToViewportParams } from '../../utils/imageCoords';
 import type { TransformState } from '../../utils/imageCoords';
@@ -77,15 +77,23 @@ function loadRegionsFromItem() {
   regions.value = (currentItem.value?.regions || []).map(r => ({ ...r }));
 }
 
+function onWindowResize() {
+  // Force reactivity update when window resizes to recalculate region positions
+  // The regionScreenStyle computed function will automatically recalculate coordinates
+  regions.value = [...regions.value];
+}
+
 onMounted(() => {
   loadRegionsFromItem();
   window.addEventListener('keydown', onKeyDown);
   window.addEventListener('keyup', onKeyUp);
+  window.addEventListener('resize', onWindowResize);
 });
 
 onBeforeUnmount(() => {
   window.removeEventListener('keydown', onKeyDown);
   window.removeEventListener('keyup', onKeyUp);
+  window.removeEventListener('resize', onWindowResize);
 });
 
  // key handlers: Shift locks aspect during drawing/resizing
@@ -429,16 +437,38 @@ if (!(window as any).__imageCoordsUtil) {
   import('../../utils/imageCoords').then((m) => { (window as any).__imageCoordsUtil = m; }).catch(() => {});
 }
 
-// watch for project item changes
-// re-load regions when item changes
-let lastItemId: string | null = null;
-setInterval(() => {
-  const it = currentItem.value;
-  if ((it && it.id) !== lastItemId) {
-    lastItemId = it?.id || null;
+// Watch for project item changes and region updates
+watch(currentItem, (newItem, oldItem) => {
+  if (newItem?.id !== oldItem?.id) {
     loadRegionsFromItem();
   }
-}, 500);
+}, { immediate: true });
+
+// Watch for changes in the current item's regions array to sync updates from editor
+watch(() => currentItem.value?.regions, (newRegions) => {
+  if (newRegions) {
+    // Only reload if there are actual differences to avoid infinite loops
+    const needsUpdate = regions.value.length !== newRegions.length ||
+      regions.value.some((localR, idx) => {
+        const itemR = newRegions[idx];
+        return !itemR || localR.id !== itemR.id || 
+               localR.name !== itemR.name || 
+               localR.caption !== itemR.caption ||
+               localR.x !== itemR.x || localR.y !== itemR.y ||
+               localR.w !== itemR.w || localR.h !== itemR.h;
+      });
+    
+    if (needsUpdate) {
+      loadRegionsFromItem();
+    }
+  }
+}, { deep: true });
+
+// Watch for viewport changes that affect region positioning
+watch([() => state.zoom, () => state.panX, () => state.panY, () => state.rotation], () => {
+  // Force reactivity update to recalculate region positions
+  regions.value = [...regions.value];
+});
 
  // expose small API for external code (detector) to add suggested boxes
 // Usage: (componentRef as any).addSuggestedBoxes([{x,y,w,h}, ...]) where coords are full-res image pixels
