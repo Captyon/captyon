@@ -1,11 +1,12 @@
 # Captyon 📸
 
-A local-first tool for organizing images and crafting high‑quality captions. Built with **Vue 3**, **TypeScript**, and **Vite** for a fast client experience, plus an optional **Express + MongoDB** server to persist large media via GridFS and enable multi-machine sync.
+A local-first tool for organizing images and crafting high‑quality captions. Built with **Vue 3**, **TypeScript**, **Vite** and **Tailwind CSS** for a fast client experience, plus an optional **Express + MongoDB** server to persist large media via GridFS and enable multi-machine sync.
 
-This README covers installation, configuration, development workflow, API reference, data storage behavior, and troubleshooting.
+This README covers installation, configuration, development workflow, API reference, data storage behavior, screenshots, and troubleshooting.
 
 Table of contents
 - Features
+- Screenshots
 - Quickstart (local dev)
 - Prerequisites
 - Configuration (.env)
@@ -22,7 +23,7 @@ Table of contents
 
 ## ✨ Features
 
-- Organize image and video items into named projects with captions and metadata.
+- Organize image and video items into named projects with captions, tags and metadata.
 - Local persistence via IndexedDB (works offline).
 - Optional server sync using an Express API + MongoDB/GridFS for large media storage.
 - Automatic captioning using a local Ollama model (optional).
@@ -30,7 +31,20 @@ Table of contents
 - Bulk caption utilities: add prefixes/suffixes, find & replace across many captions.
 - Import folders or JSON project exports; export projects as JSON or ZIP (media + captions).
 - Video support: preview thumbnails; videos can be skipped during auto-captioning.
+- Cropping & region selection tools for focused captioning and curation.
+- Curation workflow components for reviewing and accepting suggested captions.
 - Server includes CORS, rate-limiting, optional API key authentication, and GridFS media storage.
+- Built with Tailwind CSS for responsive UI.
+
+---
+
+## Screenshots
+
+Main UI  
+![Main UI](./screenshots/main.jpg)
+
+Region selection / cropping overlay  
+![Regions / Crop Overlay](./screenshots/regions.jpg)
 
 ---
 
@@ -106,8 +120,10 @@ Security note: If you expose the server to the public internet, set an API key a
 
 ## Available scripts
 
-Root package.json
-- `npm run dev` — concurrently runs server dev and client (dev:server + dev:client)
+Root package.json (project root):
+- `npm run dev` — concurrently runs server dev and client (runs `dev:server` + `dev:client`)
+- `npm run dev:server` — runs server dev (delegates to `server/` scripts)
+- `npm run dev:client` — starts Vite dev server
 - `npm run build` — typecheck (vue-tsc) and build client
 - `npm run preview` — preview built client
 
@@ -126,6 +142,7 @@ Top-level layout (important folders):
 ├─ src/            # Vue 3 front-end (client)
 ├─ server/         # Express + MongoDB API (optional)
 ├─ public/         # Static assets (client)
+├─ screenshots/    # Project screenshots (included in this README)
 ```
 
 Key server files:
@@ -135,9 +152,11 @@ Key server files:
 
 Key client files:
 - `src/components/CaptionStudio.vue` — main UI component
+- `src/components/caption-studio/*` — UI sub-components (Viewer, Editor, Toolbar, modals)
 - `src/store/useProjectStore.ts` — client-side project persistence and sync logic
 - `src/services/*` — services (DB wrappers, Ollama integration, etc.)
 - `src/utils/file.ts` — import/export helpers
+- `src/config/cropping.ts` — cropping and region defaults
 
 ---
 
@@ -147,21 +166,21 @@ Base URL: `http://localhost:<PORT>` (default: 4000)
 
 All endpoints return JSON unless otherwise noted.
 
-1) GET /projects/meta
-- Description: Returns metadata for all projects: `{ id, name, count, updatedAt }[]`
+1) GET /projects/meta  
+- Description: Returns metadata for all projects: `{ id, name, count, updatedAt }[]`  
 - Example:
   ```bash
   curl http://localhost:4000/projects/meta
   ```
 
-2) GET /projects/:id
-- Description: Returns the full project document. If items only reference GridFS files via `imgId` and do not have inline `img` data, the server will attempt to hydrate small thumbnails (data URLs) from GridFS and embed them in the response so the client can render thumbnails without separate requests.
+2) GET /projects/:id  
+- Description: Returns the full project document. If items only reference GridFS files via `imgId` and do not have inline `img` data, the server will attempt to hydrate small thumbnails (data URLs) from GridFS and embed them in the response so the client can render thumbnails without separate requests.  
 - Example:
   ```bash
   curl http://localhost:4000/projects/my-project-id
   ```
 
-3) PUT /projects/:id
+3) PUT /projects/:id  
 - Description: Upsert a full project document. The client typically sends the entire project object (including items). The server:
   - Validates payload `id` matches URL.
   - Scans items for inline base64 media and, when MongoDB is available, stores large media in GridFS and replaces inline data with `imgId`, keeping a small thumbnail inline.
@@ -175,14 +194,14 @@ All endpoints return JSON unless otherwise noted.
     http://localhost:4000/projects/my-project-id
   ```
 
-4) GET /projects/files/:id
+4) GET /projects/files/:id  
 - Description: Streams a file stored in GridFS by file id. The server attempts to set `Content-Type` and `Content-Disposition` (inline; filename="...") based on GridFS metadata.
 - Example:
   ```bash
   curl http://localhost:4000/projects/files/64b...abc > image.jpg
   ```
 
-5) DELETE /projects/:id
+5) DELETE /projects/:id  
 - Description: Deletes the project document and attempts to delete any GridFS files referenced by it. If GridFS deletion fails for some files, the server logs a warning but proceeds to delete the project document.
 
 Authentication & Rate Limiting:
@@ -226,6 +245,8 @@ Implications for client:
   - Run find & replace over a subset or all captions.
 - Automatic captioning:
   - If you run a local Ollama model and configure the client to use it, auto-captioning can generate captions for images. Streaming responses are supported where available.
+- Cropping & regions:
+  - Use the crop overlay to define regions of interest; captioning and curation tools can operate on selected regions rather than the whole image.
 - Video handling:
   - Video items can include thumbnails; automatic captioning can be skipped for video items.
   - Server enforces `VIDEO_MAX_SIZE_MB` for inline video uploads to prevent huge payloads.
@@ -272,7 +293,7 @@ Please follow the existing TypeScript and Vue 3 patterns. The repo uses `vue-tsc
 ## License & acknowledgements
 
 - Captyon Non-Resale Attribution License (see `LICENSE` file.)
-- Thanks to the open-source ecosystem: Vue, Vite, Express, MongoDB, Sharp, and others.
+- Thanks to the open-source ecosystem: Vue, Vite, Express, MongoDB, Sharp, Tailwind, and others.
 
 ---
 
