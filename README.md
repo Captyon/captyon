@@ -4,26 +4,12 @@ A local-first tool for organizing images and crafting high‑quality captions. B
 
 This README covers installation, configuration, development workflow, API reference, data storage behavior, screenshots, and troubleshooting.
 
-Table of contents
-- Features
-- Screenshots
-- Quickstart (local dev)
-- Prerequisites
-- Configuration (.env)
-- Available scripts
-- Architecture & project structure
-- API reference
-- Storage & GridFS behavior
-- Client features & usage notes
-- Development tips
-- Troubleshooting
-- Contributing & license
-
 ---
 
 ## ✨ Features
 
 - Organize image and video items into named projects with captions, tags and metadata.
+- Accessibility: automatically dim very bright images to protect users' eyes.
 - Local persistence via IndexedDB (works offline).
 - Optional server sync using an Express API + MongoDB/GridFS for large media storage.
 - Automatic captioning using a local Ollama model (optional).
@@ -34,7 +20,6 @@ Table of contents
 - Cropping & region selection tools for focused captioning and curation.
 - Curation workflow components for reviewing and accepting suggested captions.
 - Server includes CORS, rate-limiting, optional API key authentication, and GridFS media storage.
-- Built with Tailwind CSS for responsive UI.
 
 ---
 
@@ -293,7 +278,7 @@ Please follow the existing TypeScript and Vue 3 patterns. The repo uses `vue-tsc
 ## License & acknowledgements
 
 - Captyon Non-Resale Attribution License (see `LICENSE` file.)
-- Thanks to the open-source ecosystem: Vue, Vite, Express, MongoDB, Sharp, Tailwind, and others.
+- Thanks to the open-source ecosystem: Vue, Vite, Express, MongoDB, Sharp, and others.
 
 ---
 
