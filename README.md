@@ -1,3 +1,9 @@
+<div style="background-color:#f59e0b;color:#0f172a;padding:12px;border-radius:6px;margin-bottom:16px;font-weight:600;">
+⚠️ ALPHA — This project is currently in an alpha state.
+
+This is an early release. <strong>You WILL encounter bugs, unexpected behavior, or features that do not work correctly.</strong> Use at your own risk and please report issues if you run into problems.
+</div>
+
 # Captyon 📸
 
 A local-first tool for organizing images and crafting high‑quality captions. Built with **Vue 3**, **TypeScript**, and **Vite** for a fast client experience, plus an optional **Express + MongoDB** server to persist large media via GridFS and enable multi-machine sync.
