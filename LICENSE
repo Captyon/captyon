@@ -1,4 +1,4 @@
-Caption Studio Non-Resale Attribution License (CS-NRA-1.0)
+Captyon Non-Resale Attribution License (CS-NRA-1.0)
 
 Copyright (c) 2025 github.com/rmcc3
 All rights reserved.
@@ -16,7 +16,7 @@ Permission is granted, free of charge, to any person obtaining a copy of this so
 
 3. Attribution
    3.1 Required notices. Redistributions in source or binary form and all Derivative Works must include:
-       a) Clear attribution: “Includes code from Caption Studio (https://github.com/rmcc3/caption-studio)”
+       a) Clear attribution: “Includes code from Captyon \(https://captyon.com\)”
        b) A copy of or link to this license
        c) Retention of existing copyright notices in all source files where they appear
    3.2 User-facing credit. Any user-facing product or service must present reasonably prominent attribution on a primary interface. Examples: main UI footer, About dialog reachable within one click, or initial setup screen.
@@ -93,6 +93,6 @@ Definitions
    “Distribution” includes making available in any form, including over a network.
 
 Exhibit A: Acceptable Attribution Examples
-   1) UI footer: “Powered by Caption Studio. Includes code from Caption Studio (link).”
-   2) About dialog: “This product includes code from Caption Studio (link) under CS-NRA-1.0.”
+   1) UI footer: “Powered by Captyon. Includes code from Captyon \(https://captyon.com\).”
+   2) About dialog: “This product includes code from Captyon \(https://captyon.com\) under CS-NRA-1.0.”
    3) API portal: Attribution on the main documentation page and in the developer dashboard Legal section.

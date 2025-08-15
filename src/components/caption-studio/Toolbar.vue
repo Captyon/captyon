@@ -4,9 +4,9 @@
     <div class="toolbar-section toolbar-section--brand">
       <div class="brand">
         <div class="brand-logo">
-          <img src="/cs-icon.svg" alt="Caption Studio" class="logo" />
+          <img src="/cs-icon.svg" alt="Captyon" class="logo" />
         </div>
-        <h1 class="brand-title">Caption Studio</h1>
+        <h1 class="brand-title">Captyon</h1>
       </div>
     </div>
 

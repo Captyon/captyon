@@ -1,4 +1,4 @@
-# Caption Studio 📸
+# Captyon 📸
 
 A local-first tool for organizing images and crafting high‑quality captions. Built with **Vue 3**, **TypeScript**, and **Vite** for a fast client experience, plus an optional **Express + MongoDB** server to persist large media via GridFS and enable multi-machine sync.
 
@@ -271,9 +271,9 @@ Please follow the existing TypeScript and Vue 3 patterns. The repo uses `vue-tsc
 
 ## License & acknowledgements
 
-- Caption Studio Non-Resale Attribution License (see `LICENSE` file.)
+- Captyon Non-Resale Attribution License (see `LICENSE` file.)
 - Thanks to the open-source ecosystem: Vue, Vite, Express, MongoDB, Sharp, and others.
 
 ---
 
-Enjoy editing captions and organizing your media with Caption Studio!
+Enjoy editing captions and organizing your media with Captyon!

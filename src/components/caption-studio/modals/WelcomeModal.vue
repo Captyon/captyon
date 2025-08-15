@@ -5,10 +5,10 @@
       <div class="welcome-hero">
         <div class="welcome-logo">
           <div class="logo-icon">
-            <img src="/cs-icon.svg" alt="Caption Studio Logo" width="40" height="40">
+            <img src="/cs-icon.svg" alt="Captyon Logo" width="40" height="40">
           </div>
           <div class="welcome-title">
-            <h1>Welcome to Caption Studio</h1>
+            <h1>Welcome to Captyon</h1>
             <p>Your AI-powered image captioning workspace</p>
           </div>
         </div>
@@ -76,7 +76,7 @@
 
         <!-- Features Preview -->
         <div class="features-preview">
-          <h3>What you can do with Caption Studio:</h3>
+          <h3>What you can do with Captyon:</h3>
           <div class="features-grid">
             <div class="feature-item">
               <span class="feature-icon">🤖</span>
