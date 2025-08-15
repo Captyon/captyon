@@ -52,8 +52,8 @@ Region selection / cropping overlay
 
 1. Clone the repo:
    ```bash
-   git clone https://github.com/rmcc3/caption-studio.git
-   cd caption-studio
+   git clone https://github.com/captyon/captyon.git
+   cd captyon
    ```
 
 2. Install dependencies (root installs both client and server dependencies via the lockfile):
