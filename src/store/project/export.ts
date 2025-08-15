@@ -150,11 +150,11 @@ export async function exportProjectZip() {
             // Draw the crop from the source image
             ctx.drawImage(img, region.x, region.y, region.w, region.h, 0, 0, region.w, region.h);
 
-            // Convert to PNG blob
-            const blob: Blob | null = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+            // Convert to JPEG blob
+            const blob: Blob | null = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.92));
             
             if (blob) {
-              const regionImgName = `${idx}_region_${regionName}.png`;
+              const regionImgName = `${idx}_region_${regionName}.jpg`;
               const regionTxtName = `${idx}_region_${regionName}.txt`;
               
               zipObj.file(regionImgName, blob);
@@ -274,9 +274,9 @@ export async function exportRegions() {
       // draw the crop from the source image
       ctx.drawImage(img, r.x, r.y, r.w, r.h, 0, 0, r.w, r.h);
 
-      // convert to PNG blob
-      const blob: Blob | null = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
-      const name = `region-${String(i + 1).padStart(3, '0')}.png`;
+      // convert to JPEG blob
+      const blob: Blob | null = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.92));
+      const name = `region-${String(i + 1).padStart(3, '0')}.jpg`;
       if (blob) {
         zipObj.file(name, blob);
       }
