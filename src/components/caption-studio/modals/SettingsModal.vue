@@ -30,6 +30,7 @@
           <label><input type="checkbox" id="usePromptMeta" v-model="state.settings.usePromptMetadata"> Scan images for embedded prompts</label>
           <label><input type="checkbox" id="confirmPrompt" v-model="state.settings.confirmPromptOnImport"> Confirm before applying embedded prompts</label>
           <label><input type="checkbox" id="confirmDelete" v-model="state.settings.confirmDeleteOnRemove"> Confirm before deleting images</label>
+          <label><input type="checkbox" id="showOverlayLabels" v-model="state.settings.showOverlayLabels"> Show overlay labels</label>
         </div>
       </div>
 
@@ -120,6 +121,9 @@ function resetSettings() {
   state.settings.autoDimEnabled = true;
   state.settings.autoDimThreshold = 230;
   state.settings.defaultDimPercent = 70;
+  
+  // Reset UI settings
+  state.settings.showOverlayLabels = true;
 
   // Reset manual dim UI state
   (state as any).manualDimPercent = 100;

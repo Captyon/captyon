@@ -142,7 +142,7 @@
            @wheel.prevent="onWheel">
         
         <!-- Auto-dim indicator -->
-        <div v-if="dimInfo?.source === 'auto'" class="dim-indicator">
+        <div v-if="dimInfo?.source === 'auto' && state.settings?.showOverlayLabels" class="dim-indicator">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <circle cx="12" cy="12" r="5"/>
             <line x1="12" y1="1" x2="12" y2="3"/>

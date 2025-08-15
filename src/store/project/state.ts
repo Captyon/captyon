@@ -66,7 +66,10 @@ export const state = reactive<State>({
     // Image dimming defaults
     autoDimEnabled: true,
     autoDimThreshold: 165,
-    defaultDimPercent: 60
+    defaultDimPercent: 60,
+    
+    // UI label settings
+    showOverlayLabels: true
   },
   // Manual dim percent (100 = no manual dim). Users can adjust this from the Viewer.
   manualDimPercent: 100,

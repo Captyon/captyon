@@ -71,6 +71,9 @@ export type Settings = {
   autoDimEnabled?: boolean;
   autoDimThreshold?: number; // 0-255 brightness threshold
   defaultDimPercent?: number; // 10-100 percent (100 = no dim)
+  
+  // UI label settings
+  showOverlayLabels?: boolean; // Show "Alt+Click+drag" and auto-dim labels (default true)
 };
 
 export type ToastKind = '' | 'ok' | 'warn' | 'danger';

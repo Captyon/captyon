@@ -19,18 +19,14 @@
     <div v-if="drawing" class="region-preview" :style="previewStyle"></div>
 
     <!-- Controls (top-right) -->
-    <div class="overlay-controls">
+    <div v-if="state.settings?.showOverlayLabels" class="overlay-controls" :style="{ zIndex: 1200, top: autoDimActive ? '48px' : '8px' }">
       <div class="readouts">
         <div v-if="activeRect">
           <div><strong>Size:</strong> {{ activeRect.w }}×{{ activeRect.h }} px</div>
           <div><strong>Aspect:</strong> {{ activeRect.aspect }}</div>
           <div><strong>Valid:</strong> <span :style="{ color: activeRect.valid ? '#7dd3a6' : '#ff7b7b' }">{{ activeRect.valid ? 'Yes' : 'No' }}</span></div>
         </div>
-        <div v-else style="opacity:0.85">Alt+Click+drag to create a region. Shift=lock aspect. Alt toggles snap.</div>
-      </div>
-      <div style="display:flex; gap:8px; margin-top:8px; align-items:center">
-        <button class="btn small" @click="toggleSnap" :class="{ active: snapEnabled }">{{ snapEnabled ? 'Snap: ON' : 'Snap: OFF' }}</button>
-        <button class="btn small" @click="exportRegions">Export Regions</button>
+        <div v-else style="opacity:0.85">Alt+Click+drag to create a region.</div>
       </div>
     </div>
   </div>
@@ -68,6 +64,15 @@ const snapList = Array.from(CROPPING.snapSizes as readonly number[]);
 // Derived
 const currentItem = computed(() => store.currentItem());
 
+const autoDimActive = computed(() => {
+  if (currentItem.value?.mediaType !== 'image') return false;
+  if (typeof state.manualDimPercent === 'number' && state.manualDimPercent > 0 && state.manualDimPercent < 100) return false;
+  if (!state.settings?.autoDimEnabled) return false;
+  const avg = currentItem.value?.avgBrightness;
+  if (typeof avg !== 'number' || typeof state.settings?.autoDimThreshold !== 'number') return false;
+  return avg >= state.settings.autoDimThreshold;
+});
+
 function loadRegionsFromItem() {
   regions.value = (currentItem.value?.regions || []).map(r => ({ ...r }));
 }
@@ -83,27 +88,19 @@ onBeforeUnmount(() => {
   window.removeEventListener('keyup', onKeyUp);
 });
 
-// key handlers: Shift locks aspect during drawing/resizing; Alt toggles snap while held
-const keyState = { shift: false, alt: false };
+ // key handlers: Shift locks aspect during drawing/resizing
+const keyState = { shift: false };
 
 function onKeyDown(e: KeyboardEvent) {
   if (e.key === 'Shift') keyState.shift = true;
-  if (e.key === 'Alt') keyState.alt = true;
-  // reflect Alt as temporary snap toggle
-  if (keyState.alt) snapEnabled.value = true;
   // Delete key removes selected region
   if (e.key === 'Delete') {
-    // call deleteSelectedRegion if available (defined later)
     try { deleteSelectedRegion(); } catch (err) {}
   }
 }
 
 function onKeyUp(e: KeyboardEvent) {
   if (e.key === 'Shift') keyState.shift = false;
-  if (e.key === 'Alt') {
-    keyState.alt = false;
-    snapEnabled.value = false;
-  }
 }
 
 function toggleSnap() {
@@ -118,7 +115,7 @@ function onPointerDown(e: PointerEvent) {
   // If clicking on a region, let the region handlers manage it
   if (target && target.closest('.region-box')) return;
   // If Alt is not held this is a plain click on the image — clear region selection, focus the item caption, and allow pan to proceed
-  if (!e.altKey && !keyState.alt) {
+  if (!e.altKey) {
     try { store.setSelectedRegion?.(null); } catch (err) { state.selectedRegionId = null; }
     // focus the item-level caption textarea so the editor visibly switches to the image prompt
     setTimeout(() => {
