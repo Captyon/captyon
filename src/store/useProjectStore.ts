@@ -5,7 +5,7 @@ import { refreshMetaBar, createProject, loadProjectById, deleteProject } from '.
 import { getCurrentProject, currentItem, filteredItems, getAbsoluteIndex } from './project/accessors';
 import { ingestFiles } from './project/ingest';
 import { saveCurrentProject, applyEdits, copyFromFile, clearCaption, bulkApply, prev, next, toggleSelect, clearList, removeCurrentItem } from './project/edits';
-import { exportProject, exportProjectZip, importProjectFromJSON } from './project/export';
+import { exportProject, exportProjectZip, importProjectFromJSON, exportAllRegions } from './project/export';
 import { addToast, dismissToast } from './project/toasts';
 import { autoCaptionCurrent, autoCaptionBulk } from './project/autoCaption';
 import { acceptPromptCandidate, rejectPromptCandidate, acceptAllPromptCandidates, rejectAllPromptCandidates } from './project/promptCandidates';
@@ -38,6 +38,7 @@ export function useProjectStore() {
     },
     exportProject,
     exportProjectZip,
+    exportAllRegions,
     importProjectFromJSON,
     applyEdits,
     copyFromFile,

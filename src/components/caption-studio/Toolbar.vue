@@ -202,6 +202,14 @@
                 </svg>
                 Export as ZIP
               </button>
+              <button class="dropdown-item" @click="exportRegionsFromDropdown">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <path d="M3 3h18v4H3z"/>
+                  <path d="M7 11h10v9H7z"/>
+                  <path d="M10 14h4"/>
+                </svg>
+                Export Regions
+              </button>
               <div class="dropdown-divider"></div>
               <button class="dropdown-item" @click="closeCurrentProjectFromFileDropdown" :disabled="!selectedId">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
@@ -720,6 +728,25 @@ function exportProjectJsonFromDropdown() {
 function exportProjectZipFromDropdown() {
   fileDropdownOpen.value = false;
   exportProjectZip();
+}
+
+function exportRegions() {
+  try {
+    (store as any).exportRegions?.();
+  } catch (e) {
+    console.error('exportRegions failed', e);
+  } finally {
+    exportOpen.value = false;
+  }
+}
+
+function exportRegionsFromDropdown() {
+  fileDropdownOpen.value = false;
+  try {
+    (store as any).exportAllRegions?.();
+  } catch (e) {
+    console.error('exportAllRegionsFromDropdown failed', e);
+  }
 }
 
 function closeCurrentProjectFromFileDropdown() {
