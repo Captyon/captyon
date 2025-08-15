@@ -85,7 +85,7 @@ A sample environment file is provided at `server/.env.example`. Copy it to `serv
 
 Important variables:
 
-- MONGODB_URI — MongoDB connection string (example: `mongodb://localhost:27017/captionstudio`)
+- MONGODB_URI — MongoDB connection string (example: `mongodb://localhost:27017/captyon`)
 - PORT — API server port (default `4000`)
 - CORS_ORIGINS — comma-separated allowed origins (example: `http://localhost:5173`)
 - API_KEY — optional server API key. If set, clients must send `Authorization: Bearer <key>` or `x-api-key` header.
@@ -93,7 +93,7 @@ Important variables:
 
 Example:
 ```env
-MONGODB_URI=mongodb://localhost:27017/captionstudio
+MONGODB_URI=mongodb://localhost:27017/captyon
 PORT=4000
 CORS_ORIGINS=http://localhost:5173
 API_KEY=
