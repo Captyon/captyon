@@ -19,6 +19,7 @@ export type Item = {
   base: string;
   caption: string;
   originalCaption: string;
+  aiGenerated?: boolean;
   img: string; // data URL
   tags: string[];
   selected: boolean;
@@ -26,11 +27,8 @@ export type Item = {
   height: number;
   // Average brightness measured on import (0-255). Higher = brighter.
   avgBrightness?: number;
-  // Optional media metadata for video files
   mediaType?: 'image' | 'video' | string;
   size?: number; // bytes
-
-  // Crop regions (optional)
   regions?: Region[];
 
   // Curation status accept/reject workflow

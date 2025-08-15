@@ -33,6 +33,7 @@ export async function autoCaptionCurrent() {
     const text = await captionPromise;
     if (text) {
       it.caption = text;
+      it.aiGenerated = true;
       addToast('AI caption generated', 'ok');
       // Auto-save after AI caption completes
       try {
@@ -82,6 +83,7 @@ export async function autoCaptionBulk() {
       const text = await captionPromise;
       if (text) {
         it.caption = text;
+        it.aiGenerated = true;
         // Auto-save after each generated caption to persist progress
         try {
           await saveCurrentProject();

@@ -178,7 +178,12 @@
       <!-- Main Caption Editor -->
       <div class="editor-body">
         <div class="input-group input-group--main">
-          <label class="input-label">Caption</label>
+          <div class="label-row">
+            <label class="input-label">Caption</label>
+            <div v-if="currentItem?.aiGenerated" class="tag-chip ai-badge" title="AI generated">
+              <span class="tag-text">AI</span>
+            </div>
+          </div>
           <div class="input-wrapper">
             <textarea 
               id="captionBox" 
@@ -457,6 +462,25 @@ function doDelete() {
   display: flex;
   flex-direction: column;
   gap: 8px;
+}
+
+/* Label row: aligns field label and optional AI badge */
+.label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+/* AI badge (reuses tag-chip theme but slightly smaller) */
+.ai-badge {
+  padding: 2px 8px;
+  font-size: 11px;
+  border-radius: 10px;
+  height: 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .input-group--main {

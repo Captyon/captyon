@@ -36,6 +36,7 @@ export async function putProject(project: Project): Promise<void> {
           base: it.base,
           caption: it.caption,
           originalCaption: it.originalCaption,
+          aiGenerated: !!it.aiGenerated,
           img: it.img,
           tags: Array.isArray(it.tags) ? it.tags.slice() : [],
           selected: !!it.selected,
