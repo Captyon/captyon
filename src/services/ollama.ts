@@ -10,7 +10,7 @@ export async function testOllama(url: string): Promise<boolean> {
   }
 }
 
-export async function captionImage(settings: Settings, imgBase64: string, onChunk?: (s: string) => void): Promise<string> {
+export async function captionImage(settings: Settings, imgBase64: string, onChunk?: (s: string) => void, onConnected?: () => void): Promise<string> {
   const url = new URL('/api/chat', settings.ollamaUrl).toString();
   const body = {
     model: settings.ollamaModel,
@@ -25,6 +25,9 @@ export async function captionImage(settings: Settings, imgBase64: string, onChun
   });
 
   if (!res.ok) throw new Error('HTTP ' + res.status);
+
+  // Notify caller that the connection to Ollama succeeded (useful to update UI)
+  if (onConnected) onConnected();
 
   if (settings.stream && res.body) {
     const reader = res.body.getReader();

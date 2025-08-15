@@ -20,9 +20,17 @@ export async function autoCaptionCurrent() {
   try {
     state.status = 'Contacting Ollama';
     const img64 = it.img.split(',')[1] || '';
-    const text = await captionImage(state.settings, img64, chunk => {
+    // Start request and optimistically show generating while awaiting response
+    const captionPromise = captionImage(state.settings, img64, chunk => {
+      if (state.status === 'Contacting Ollama') state.status = 'Generating Caption';
       it.caption = (it.caption || '') + chunk;
+    }, () => {
+      // After a successful connection to Ollama, show that generation has started
+      state.status = 'Generating Caption';
     });
+    // Optimistically set generating so UI updates during model work even if server doesn't stream early
+    state.status = 'Generating Caption';
+    const text = await captionPromise;
     if (text) {
       it.caption = text;
       addToast('AI caption generated', 'ok');
@@ -58,10 +66,20 @@ export async function autoCaptionBulk() {
     const it = targets[i];
     state.currentIndex = proj.items.indexOf(it);
     try {
+      // Set contacting status for this item, then switch to generating when connected
+      state.status = 'Contacting Ollama';
       const img64 = it.img.split(',')[1] || '';
-      const text = await captionImage(state.settings, img64, chunk => {
+      // Start request and optimistically show generating while awaiting response
+      const captionPromise = captionImage(state.settings, img64, chunk => {
+        if (state.status === 'Contacting Ollama') state.status = 'Generating Captions';
         it.caption = (it.caption || '') + chunk;
+      }, () => {
+        // After a successful connection to Ollama for bulk mode, indicate generating captions
+        state.status = 'Generating Captions';
       });
+      // Optimistically set generating so UI updates during model work even if server doesn't stream early
+      state.status = 'Generating Captions';
+      const text = await captionPromise;
       if (text) {
         it.caption = text;
         // Auto-save after each generated caption to persist progress
