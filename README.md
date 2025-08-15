@@ -1,6 +1,6 @@
 # Captyon 📸
 
-A local-first tool for organizing images and crafting high‑quality captions. Built with **Vue 3**, **TypeScript**, **Vite** and **Tailwind CSS** for a fast client experience, plus an optional **Express + MongoDB** server to persist large media via GridFS and enable multi-machine sync.
+A local-first tool for organizing images and crafting high‑quality captions. Built with **Vue 3**, **TypeScript**, and **Vite** for a fast client experience, plus an optional **Express + MongoDB** server to persist large media via GridFS and enable multi-machine sync.
 
 This README covers installation, configuration, development workflow, API reference, data storage behavior, screenshots, and troubleshooting.
 
